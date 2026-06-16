@@ -568,10 +568,33 @@ window.WorksheetEngine = {
 
     html += `<div class="ws__exercises">`;
     worksheet.exercises.forEach((ex, i) => {
-      // Interactive types (match, sort, drag*) handle their own inline feedback & styling
-      const hasAnswer = ex.answer !== undefined;
-      const status = isResults && hasAnswer ? (ex.userAnswer === ex.answer ? 'ws-ex--correct' : 'ws-ex--wrong') : '';
-      const feedback = isResults && hasAnswer && ex.userAnswer !== ex.answer ? `<div class="ws-ex__feedback">Correct answer: <strong>${ex.answer}</strong></div>` : '';
+      // Determine correct/wrong status for all types
+      let exCorrect = false;
+      if (isResults) {
+        if (ex.answer !== undefined) {
+          // choose / input — compare against ex.answer
+          exCorrect = ex.userAnswer === ex.answer;
+        } else if (ex.type === 'match') {
+          exCorrect = (ex.pairs || []).every(p => ex.userMatches?.[p.id] === p.id) &&
+                      Object.keys(ex.userMatches || {}).length === (ex.pairs || []).length;
+        } else if (ex.type === 'sort' || ex.type === 'dragorder') {
+          const items = ex.items || [];
+          exCorrect = items.length > 0 && items.every(item => {
+            const pos = (ex.userOrder || []).indexOf(item.id);
+            return pos >= 0 && item.correctOrder === pos;
+          });
+        } else if (ex.type === 'dragmatch') {
+          exCorrect = (ex.targets || []).every(t => ex.userMatches?.[t.id] === t.correctSourceId);
+        } else if (ex.type === 'dragzone') {
+          const items = ex.items || [];
+          exCorrect = items.length > 0 && items.every(item => {
+            const placedZones = Object.entries(ex.userZones || {}).filter(([, ids]) => ids.includes(item.id)).map(([zid]) => zid);
+            return placedZones.length === 1 && placedZones[0] === item.zoneId;
+          });
+        }
+      }
+      const status = isResults ? (exCorrect ? 'ws-ex--correct' : 'ws-ex--wrong') : '';
+      const feedback = isResults && !exCorrect && ex.answer !== undefined ? `<div class="ws-ex__feedback">Correct answer: <strong>${ex.answer}</strong></div>` : '';
 
       html += `
         <div class="ws-ex ${status}" data-id="${ex.id}">
@@ -693,9 +716,10 @@ window.WorksheetEngine = {
           <button class="hero__btn-primary" id="wsCheckBtn">✅ Check Answers</button>
         </div>`;
     } else {
+      const nextLabel = passed ? '🎉 Next Question' : '🔄 Try Again';
       html += `
         <div class="ws__actions">
-          <button class="hero__btn-primary" id="wsRetryBtn">🔄 Try Again</button>
+          <button class="hero__btn-primary" id="wsNextBtn">${nextLabel}</button>
         </div>`;
     }
 
@@ -884,10 +908,10 @@ window.WorksheetEngine = {
       });
     }
 
-    // Try Again button
-    const retryBtn = container.querySelector('#wsRetryBtn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => {
+    // Next Question / Try Again button
+    const nextBtn = container.querySelector('#wsNextBtn');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
         const newWs = this.generate(worksheet.subject, worksheet.grade, worksheet.difficulty);
         container.innerHTML = this.renderWorksheet(newWs);
         this.attachHandlers(newWs, container, onQuestComplete);
