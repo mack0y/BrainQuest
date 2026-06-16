@@ -1,7 +1,7 @@
 # 🧠 BrainQuest — Project Memory
 
 > **A gamified learning platform for kids ages 4-11**
-> Built with Vanilla JS + Supabase (Phase 1 — Core MVP)
+> Built with Vanilla JS + Supabase (Phase 1 — Core MVP · Phase 2 — Interactive Worksheets)
 
 ---
 
@@ -74,6 +74,14 @@ BrainQuest/
 │   │   ├── getLevelInfo (XP calc with per-level scaling)
 │   │   └── isLoggedIn check
 │   │
+│   ├── worksheets.js        # Worksheet engine (520 lines)
+│   │   ├── generate(subject, grade, difficulty) — builds a full worksheet
+│   │   ├── Subject generators (genAlphabets, genNumbers, genMaths, genVocabulary, genColoring, genPuzzles)
+│   │   ├── renderWorksheet(worksheet) — renders interactive HTML
+│   │   ├── attachHandlers(worksheet, container) — binds clicks, inputs, check/retry
+│   │   ├── saveCompletion — awards XP + persists to worksheet_completions table
+│   │   └── Helpers (shuffle, wordToEmoji, getAnimalWord, subjectColor)
+│   │
 │   ├── gamification.js     # Gamification engine (179 lines)
 │   │   ├── addXp (add XP, check level-up, carry over)
 │   │   ├── checkBadges (auto-award on conditions met)
@@ -91,7 +99,7 @@ BrainQuest/
 │   │   ├── initHeroTilt (parallax on hero title)
 │   │   └── formatXp (1k+ formatting)
 │   │
-│   └── app.js              # Application controller (877 lines)
+│   └── app.js              # Application controller (910 lines)
 │       ├── init (bootstrap Supabase, Auth, DOM refs, listeners)
 │       ├── Hash routing (handleRoute, navigate, render)
 │       ├── Navigation updates (XP badge, avatar, active links)
@@ -99,17 +107,19 @@ BrainQuest/
 │       ├── renderAuth — Login/signup form with validation
 │       ├── renderDashboard — HUD + quest path + stats
 │       ├── renderQuests — Full quest map
-│       ├── renderWorksheet — Subject picker or worksheet view
+│       ├── renderWorksheet — Standalone generator in worksheet page container
+│       ├── renderGenerator — Subject/grade/difficulty picker
+│       ├── renderGeneratorForm(container, prefix) — Shared form renderer (DRY)
+│       ├── generateWorksheet / generateWorksheetFor(prefix) — Shared worksheet generation
 │       ├── renderLeaderboard — Top 10 players
 │       ├── renderBadges — Badge collection (locked/unlocked)
 │       ├── renderProfile — Name/avatar editor + stats + sign out
-│       ├── renderGenerator — Subject/grade/difficulty picker
 │       └── getRankTitle — Level-based title mapping
 │
 └── MEMORY.md               # This file
 ```
 
-### Total: ~3,200 lines of code
+### Total: ~3,750 lines of code
 
 ---
 
@@ -195,7 +205,8 @@ BrainQuest/
 - **Subject Cards**: Glassmorphism cards with colored top accents
 - **Badges**: Grid shelf with locked (grayscale) / unlocked states
 - **Leaderboard**: Rows with rank medals, avatar, XP, "you" highlight
-- **Generator**: Card with decorative gradient orbs, select dropdowns
+- **Generator**: Card with decorative gradient orbs, select dropdowns (shared between `#/generator` and `#/worksheet` routes)
+- **Worksheet**: Exercise container with numbered cards, clickable options, text inputs, hint tooltips, score/results overlay
 - **Toast**: Slide-in notification with icon + title + subtitle
 
 ### Animations
@@ -358,19 +369,28 @@ Then open `http://localhost:3000` in your browser.
 7. Navigate to **Leaderboard** → see yourself ranked
 8. Navigate to **Badges** → see earned badges
 9. Navigate to **Profile** → change avatar/name
-10. Navigate to **Generator** → forge a worksheet
-11. Click **Sign Out** → back to landing page
+10. Navigate to **Generator** (`#/generator`) or **Worksheets** (`#/worksheet`) → forge a worksheet
+11. Pick a subject (Alphabets/Numbers/Maths/Vocabulary/Coloring/Puzzles), grade (Preschool–Grades 4–5), and difficulty (Easy–Legendary)
+12. Click **"Forge Worksheet"** → interactive exercises appear
+13. Answer by clicking options or typing in text fields
+14. Click **"Check Answers"** → see score (%), XP earned, correct/incorrect per question
+15. Click **"Try Again"** → generates a fresh worksheet with new questions
+16. XP is awarded and saved to Supabase worksheet_completions table
+17. Click **Sign Out** → back to landing page
 
 ---
 
 ## 🔜 Roadmap: Future Phases
 
-### Phase 2 — Real Worksheets
-- [ ] Generate actual printable PDF worksheets
-- [ ] Interactive online worksheets (input fields, auto-grading)
-- [ ] Subject-specific content (Alphabets, Numbers, Maths, etc.)
-- [ ] Difficulty-adaptive content generation
+### Phase 2 ✅ — Interactive Worksheets
+- [x] Dynamic worksheet engine with 6 subject generators
+- [x] Interactive online worksheets (clickable options + text inputs)
+- [x] Auto-grading with score/XP calculation
+- [x] "Try Again" generates fresh set of questions
+- [x] XP awarded and persisted to Supabase on completion
+- [x] Difficulty-adaptive (Easy / Normal / Hard / Legendary)
 - [ ] Spaced repetition review system
+- [ ] Printable PDF export for offline use
 
 ### Phase 3 — Social Features
 - [ ] Study squads (3-5 members)
@@ -399,7 +419,8 @@ Then open `http://localhost:3000` in your browser.
 - **CDN dependency**: Requires `cdn.jsdelivr.net` to be accessible for Supabase JS library. Works offline via service worker cache after first load.
 - **No build step**: All code is vanilla JS — no minification, bundling, or transpilation. Good for a learning project, but could benefit from a build pipeline at scale.
 - **Quest completion redirect**: After completing a quest, the user is redirected to the dashboard. Future improvement: stay on current page with a local refresh.
-- **Worksheet content**: Phase 1 has the worksheet infrastructure but no real educational content yet — that comes in Phase 2.
+- **Worksheet completions**: Dynamically generated worksheets use `null` for `worksheet_id` in the `worksheet_completions` table (since no matching row exists in `worksheets`). The FK constraint error is handled gracefully — XP is still awarded.
+- **Worksheet variety**: Each generation creates new random exercises. However, the same word lists/patterns may repeat across sessions since they're drawn from fixed word banks.
 
 ---
 
@@ -412,3 +433,79 @@ Then open `http://localhost:3000` in your browser.
 ---
 
 *Last updated: June 16, 2026*
+
+## 🧠 Worksheet Engine Reference
+
+### Exercise Types by Subject
+
+| Subject | Exercise Modes | Interaction |
+|---------|---------------|:-----------:|
+| 🔤 **Alphabets** | Letter recognition, uppercase→lowercase matching, which word starts with..., fill missing letter | Click / Input |
+| 🔢 **Numbers** | Count objects, number sequencing, match number→word, greater/less than | Click / Input |
+| ➕ **Maths** | Addition, subtraction, visual dot counting, word problems | Click / Input |
+| 📖 **Vocabulary** | Word→emoji matching, fill-in-the-blank sentences, unscramble | Click / Input |
+| 🎨 **Coloring** | Color recognition (emoji matching), what color should this be? | Click |
+| 🧩 **Puzzles** | Pattern completion (emoji sequences), odd one out, sequence prediction | Click |
+
+### Difficulty Scaling
+
+| Difficulty | Exercise Count | Max Number Range | XP Range |
+|:----------:|:--------------:|:----------------:|:--------:|
+| 🟢 Easy | 5 | 1–5 | 10–20 |
+| 🟡 Normal | 6 | 1–10 | 15–25 |
+| 🟠 Hard (Epic) | 7 | 1–20 | 15–25 |
+| 🔴 Legendary | 7 | 1–50 | 20–25 |
+
+### Scoring
+
+- Each exercise has an `xp` value (10–25 depending on complexity)
+- Total worksheet XP = sum of all exercise XP values
+- Score = `(correct / total exercises) * 100`%
+- Awarded XP = `totalXP * (score / 100)` (percentage-based)
+- Passing threshold: ≥ 60% correct
+
+### Code Architecture
+
+```
+WorksheetEngine.generate(subject, grade, difficulty)
+  │
+  ├─ generateExercises(subject, grade, difficulty)
+  │   ├─ genAlphabets(count, grade, maxNum)
+  │   ├─ genNumbers(count, grade, maxNum)
+  │   ├─ genMaths(count, grade, maxNum)
+  │   ├─ genVocabulary(count, grade, maxNum)
+  │   ├─ genColoring(count, grade)
+  │   └─ genPuzzles(count, grade, maxNum)
+  │
+  ├─ renderWorksheet(worksheet) → HTML string
+  │
+  └─ attachHandlers(worksheet, container)
+      ├─ Option clicks (toggle selection)
+      ├─ Check Answers (score + re-render results)
+      ├─ Try Again (generate fresh worksheet)
+      └─ Enter key shortcut for inputs
+```
+
+### Route Usage
+
+| Route | What renders |
+|-------|-------------|
+| `#/generator` | Generator form → worksheet result in `#genResult` |
+| `#/worksheet` | Generator form → worksheet result in `#wsResult` |
+| Both | Uses shared `renderGeneratorForm(container, prefix)` and `generateWorksheetFor(prefix)` helpers |
+
+---
+
+## ⚙️ GitHub Actions Deployment
+
+The project uses a GitHub Actions workflow (`.github/workflows/deploy.yml`) to deploy to GitHub Pages:
+
+1. On push to `master`, the workflow:
+   - Checks out the repo
+   - Validates that `SUPABASE_URL` and `SUPABASE_ANON_KEY` secrets are set
+   - Creates `config.js` from the secrets
+   - Uploads the build artifact
+   - Deploys to GitHub Pages
+2. **Required secrets** (set in repo → Settings → Secrets → Actions):
+   - `SUPABASE_URL`: Supabase project URL
+   - `SUPABASE_ANON_KEY`: Supabase anon/public key
