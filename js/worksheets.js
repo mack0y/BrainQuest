@@ -913,6 +913,7 @@ window.WorksheetEngine = {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return false;
       this._audioCtx = new Ctx();
+      this._audioCtx.resume();
       return true;
     } catch (e) {
       return false;
@@ -964,7 +965,7 @@ window.WorksheetEngine = {
     // Low square-wave buzz
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'square';
+    osc.type = 'sawtooth';
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.frequency.setValueAtTime(130, now);
