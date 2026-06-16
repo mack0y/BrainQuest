@@ -58,13 +58,11 @@ const Auth = {
       }
     }
     App.navigate('/dashboard');
-    App.render();
   },
 
   // Called after logout
   async onLogout() {
     App.navigate('/');
-    App.render();
   },
 
   // Email/password signup
