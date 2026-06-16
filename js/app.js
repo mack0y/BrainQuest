@@ -80,7 +80,10 @@ const App = {
 
   async navigate(path, pushState = true) {
     if (pushState) {
+      // Setting hash triggers hashchange → handleRoute → render
+      // Don't render here to avoid double renders with stale state
       window.location.hash = '#' + path;
+      return;
     }
     this.currentRoute = path;
     await this.render();
@@ -221,7 +224,7 @@ const App = {
         await this.renderQuests();
         break;
       case 'page-worksheet':
-        this.renderWorksheet();
+        await this.renderWorksheet();
         break;
       case 'page-leaderboard':
         await this.renderLeaderboard();
