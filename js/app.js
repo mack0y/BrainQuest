@@ -10,6 +10,7 @@ const App = {
   navXP: null,
   navAvatar: null,
   pendingQuest: null,
+  pendingSubject: null,
 
   // ── INIT ──
   async init() {
@@ -74,6 +75,9 @@ const App = {
         const questId = parseInt(params.get('quest'));
         if (questId) this.pendingQuest = { questId };
       }
+      if (params.get('subject')) {
+        this.pendingSubject = params.get('subject');
+      }
     }
     this.navigate(hash, false);
   },
@@ -126,8 +130,8 @@ const App = {
         case route === '/profile':
           pageId = 'page-profile';
           break;
-        case route === '/generator':
-        case route === '/play':
+        case route.startsWith('/generator'):
+        case route.startsWith('/play'):
           pageId = 'page-generator';
           break;
         default:
@@ -512,11 +516,13 @@ const App = {
   renderGenerator() {
     const container = document.querySelector('#page-generator .generator-content');
     if (!container) return;
-    this.renderGeneratorForm(container, 'gen');
+    const preSelectedSubject = this.pendingSubject;
+    this.pendingSubject = null;
+    this.renderGeneratorForm(container, 'gen', null, preSelectedSubject);
   },
 
   // ── SHARED GENERATOR FORM (used by both worksheet, generator, and quest-mode) ──
-  renderGeneratorForm(container, prefix, questData = null) {
+  renderGeneratorForm(container, prefix, questData = null, preSelectedSubject = null) {
     const isQuestMode = !!questData;
     const label = isQuestMode
       ? `${questData.icon || '⚔️'} ${questData.title}`
@@ -538,6 +544,10 @@ const App = {
     const questSubjectIdx = isQuestMode && questData.subject !== 'General'
       ? subjectMap[questData.subject]
       : -1;
+    // Use pre-selected subject from card click (play mode only)
+    const subjectIdx = (!isQuestMode && preSelectedSubject && subjectMap[preSelectedSubject] !== undefined)
+      ? subjectMap[preSelectedSubject]
+      : questSubjectIdx;
 
     container.innerHTML = `
       ${isQuestMode ? `
@@ -562,12 +572,12 @@ const App = {
         </div>
         <div class="generator__controls">
           <select class="generator__select" id="${prefix}Subject" ${isQuestMode && questSubjectIdx >= 0 ? 'disabled' : ''}>
-            <option ${questSubjectIdx === 0 ? 'selected' : ''}>🔤 Realm: Alphabets</option>
-            <option ${questSubjectIdx === 1 ? 'selected' : ''}>🔢 Realm: Numbers</option>
-            <option ${questSubjectIdx === 2 ? 'selected' : ''}>➕ Realm: Maths</option>
-            <option ${questSubjectIdx === 3 ? 'selected' : ''}>📖 Realm: Vocabulary</option>
-            <option ${questSubjectIdx === 4 ? 'selected' : ''}>🎨 Realm: Coloring</option>
-            <option ${questSubjectIdx === 5 ? 'selected' : ''}>🧩 Realm: Puzzles</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 0 ? 'selected' : ''}>🔤 Realm: Alphabets</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 1 ? 'selected' : ''}>🔢 Realm: Numbers</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 2 ? 'selected' : ''}>➕ Realm: Maths</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 3 ? 'selected' : ''}>📖 Realm: Vocabulary</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 4 ? 'selected' : ''}>🎨 Realm: Coloring</option>
+            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 5 ? 'selected' : ''}>🧩 Realm: Puzzles</option>
           </select>
           <select class="generator__select" id="${prefix}Grade">
             <option ${isQuestMode && questData.level <= 1 ? 'selected' : ''}>👶 Grade: Preschool</option>

@@ -1,1 +1,8 @@
-supabase.js:20  POST https://ictsojpigdczrxdshrmh.supabase.co/rest/v1/worksheet_completions?select=* 400 (Bad Request)
+The reason you're seeing only the background is that the main content elements (with the class .reveal) currently have their opacity set to 0.
+
+This is typically caused by a "reveal on scroll" or entrance animation script that hasn't triggered yet. The content is physically there (in a container called .app-container), but it's invisible to the eye because:
+
+The active page (#page-worksheet) contains several elements like .ws__quest-banner and .generator-card that have the .reveal class.
+These elements are waiting for a scroll event or a JavaScript trigger to switch their opacity to 1.
+I have manually forced these elements to be visible by setting their opacity to 1 and adding the reveal--visible class so you can see the content now.
+If the page still looks empty, it might be due to a JavaScript error preventing the initialization of your content.
