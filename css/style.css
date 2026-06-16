@@ -1252,6 +1252,350 @@ ul { list-style: none; }
   margin-left: 4px;
 }
 
+/* ═══════════════════════════════════════════
+   DRAG-AND-DROP EXERCISES
+   ═══════════════════════════════════════════ */
+
+/* ── DRAG ORDER (Reorderable List) ── */
+.ws-dragorder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ws-dragorder__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  cursor: grab;
+  transition: all var(--t-fast);
+  user-select: none;
+  touch-action: none;
+}
+.ws-dragorder__item:hover {
+  border-color: var(--primary);
+  background: var(--primary-ghost);
+}
+.ws-dragorder__item:active {
+  cursor: grabbing;
+}
+.ws-dragorder__grip {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ws-dragorder__pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  color: var(--text-dim);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.ws-dragorder__label {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+.ws-dragorder__hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Drag order results */
+.ws-dragorder__result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border);
+}
+.ws-dragorder__result--correct {
+  border-color: var(--green);
+  background: rgba(16,185,129,0.08);
+}
+.ws-dragorder__result--wrong {
+  border-color: var(--rose);
+  background: rgba(244,63,94,0.06);
+}
+.ws-dragorder__result-correction {
+  font-size: 0.75rem;
+  color: var(--green);
+  margin-left: auto;
+}
+
+/* ── DRAG MATCH (Drag to Target) ── */
+.ws-dragmatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+.ws-dragmatch__sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ws-dragmatch__source {
+  padding: 14px 18px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  text-align: center;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1.2rem;
+  cursor: grab;
+  transition: all var(--t-fast);
+  user-select: none;
+  touch-action: none;
+}
+.ws-dragmatch__source:hover {
+  border-color: var(--primary);
+  background: var(--primary-ghost);
+}
+.ws-dragmatch__source--placed {
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.08);
+  font-size: 0.9rem;
+  padding: 10px 14px;
+}
+.ws-dragmatch__source--result {
+  cursor: default;
+  font-size: 0.95rem;
+}
+.ws-dragmatch__source--correct {
+  border-color: var(--green) !important;
+  background: rgba(16,185,129,0.12) !important;
+}
+.ws-dragmatch__source--wrong {
+  border-color: var(--rose) !important;
+  background: rgba(244,63,94,0.1) !important;
+}
+
+.ws-dragmatch__targets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ws-dragmatch__target {
+  padding: 12px;
+  border-radius: var(--r-md);
+  border: 2px dashed var(--border);
+  background: var(--bg-surface);
+  text-align: center;
+  transition: all var(--t-fast);
+  min-height: 64px;
+}
+.ws-dragmatch__target:hover {
+  border-color: var(--primary);
+}
+.ws-dragmatch__target--filled {
+  border-style: solid;
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.05);
+}
+.ws-dragmatch__target--correct {
+  border-style: solid !important;
+  border-color: var(--green) !important;
+  background: rgba(16,185,129,0.08) !important;
+}
+.ws-dragmatch__target--wrong {
+  border-style: solid !important;
+  border-color: var(--rose) !important;
+  background: rgba(244,63,94,0.06) !important;
+}
+.ws-dragmatch__target-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.ws-dragmatch__target-zone {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.03);
+}
+.ws-dragmatch__dropped {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1rem;
+  color: var(--amber);
+}
+
+/* ── DRAG ZONE (Categorize Items) ── */
+.ws-dragzone {
+  margin-top: 12px;
+}
+.ws-dragzone__pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 2px dashed var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  min-height: 52px;
+}
+.ws-dragzone__item {
+  padding: 10px 16px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border);
+  background: var(--bg-surface);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1rem;
+  cursor: grab;
+  transition: all var(--t-fast);
+  user-select: none;
+  touch-action: none;
+}
+.ws-dragzone__item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.ws-dragzone__zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ws-dragzone__zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--r-md);
+  padding: 12px;
+  background: var(--bg-surface);
+  min-height: 80px;
+  transition: all var(--t-fast);
+}
+.ws-dragzone__zone:hover {
+  border-color: var(--primary);
+}
+.ws-dragzone__zone-name {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.ws-dragzone__zone-drop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px;
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.02);
+}
+.ws-dragzone__zone-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+}
+.ws-dragzone__placed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 2px solid rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.08);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  user-select: none;
+}
+.ws-dragzone__placed:hover {
+  border-color: var(--rose);
+  background: rgba(244,63,94,0.08);
+}
+
+/* Drag zone results */
+.ws-dragzone__results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ws-dragzone__zone-result {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border);
+}
+.ws-dragzone__zone-result--correct {
+  border-color: var(--green);
+  background: rgba(16,185,129,0.06);
+}
+.ws-dragzone__zone-result--wrong {
+  border-color: var(--rose);
+  background: rgba(244,63,94,0.04);
+}
+.ws-dragzone__zone-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ws-dragzone__zone-item {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 0.9rem;
+  border: 2px solid;
+}
+.ws-dragzone__zone-item--correct {
+  border-color: var(--green);
+  background: rgba(16,185,129,0.1);
+  color: var(--green);
+}
+.ws-dragzone__zone-item--missing {
+  border-color: var(--rose);
+  background: rgba(244,63,94,0.06);
+  color: var(--rose);
+  text-decoration: line-through;
+}
+.ws-dragzone__zone-correction {
+  font-size: 0.75rem;
+  color: var(--green);
+  margin-top: 6px;
+}
+
+/* ── DRAG STATES ── */
+.ws-dragging {
+  opacity: 0.4 !important;
+  transform: scale(0.95) !important;
+}
+.ws-drag-hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 16px rgba(0,240,181,0.2) !important;
+  transform: scale(1.03);
+}
+.ws-drag-clone {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  border-color: var(--primary) !important;
+  background: var(--bg-card) !important;
+  border-radius: var(--r-md);
+  pointer-events: none;
+  transition: none;
+}
+
 /* ── SKELETON LOADING ── */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
