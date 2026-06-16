@@ -74,7 +74,8 @@ BrainQuest/
 │   │   ├── getLevelInfo (XP calc with per-level scaling)
 │   │   └── isLoggedIn check
 │   │
-│   ├── worksheets.js        # Worksheet engine (520 lines)
+│   ├── worksheets.js        # Worksheet engine (699 lines)
+│   │   ├── window.WorksheetEngine — global object (uses window. for console/dev access)
 │   │   ├── generate(subject, grade, difficulty) — builds a full worksheet
 │   │   ├── Subject generators (genAlphabets, genNumbers, genMaths, genVocabulary, genColoring, genPuzzles)
 │   │   ├── renderWorksheet(worksheet) — renders interactive HTML
@@ -119,7 +120,7 @@ BrainQuest/
 └── MEMORY.md               # This file
 ```
 
-### Total: ~3,750 lines of code
+### Total: ~3,900 lines of code
 
 ---
 
@@ -415,12 +416,23 @@ Then open `http://localhost:3000` in your browser.
 
 ## 🐛 Known Issues & Notes
 
+- **Navigation requires login**: Protected routes (dashboard, quests, leaderboard, badges, profile, generator) show the home page when not logged in. This can appear as a "blank page with background" since the hero section has ambient effects but no content for returning users.
 - **Service worker icons**: Uses inline SVG data URI in manifest — some platforms (iOS) may not support this for home screen icons. A real PNG asset would be more reliable.
 - **CDN dependency**: Requires `cdn.jsdelivr.net` to be accessible for Supabase JS library. Works offline via service worker cache after first load.
 - **No build step**: All code is vanilla JS — no minification, bundling, or transpilation. Good for a learning project, but could benefit from a build pipeline at scale.
 - **Quest completion redirect**: After completing a quest, the user is redirected to the dashboard. Future improvement: stay on current page with a local refresh.
 - **Worksheet completions**: Dynamically generated worksheets use `null` for `worksheet_id` in the `worksheet_completions` table (since no matching row exists in `worksheets`). The FK constraint error is handled gracefully — XP is still awarded.
 - **Worksheet variety**: Each generation creates new random exercises. However, the same word lists/patterns may repeat across sessions since they're drawn from fixed word banks.
+- **`const` vs `window` globals**: `WorksheetEngine` is declared as `window.WorksheetEngine` (not `const`) to allow browser console/DevTools access for testing. Other modules use `const` since they're accessed by reference from other scripts.
+
+### Fixed Bugs
+
+| Bug | Fix | Commit |
+|-----|-----|--------|
+| SyntaxError in `getAnimalWord` (broken str_replace left dangling `return` statement) | Restored valid `return map[letter.toUpperCase()]` | `f40fe1b` |
+| `X: 'X-ray'` not an animal word | Changed to `X: 'Xerus'` (African ground squirrel) | `f40fe1b` |
+| `WorksheetEngine` not accessible from browser console (`const` doesn't create `window` property) | Changed `const WorksheetEngine` → `window.WorksheetEngine` | `a7e0a8a` |
+| FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) | `d7f74d3` |
 
 ---
 
