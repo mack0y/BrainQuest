@@ -68,83 +68,85 @@ window.WorksheetEngine = {
     return exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
   },
 
-  // ═══ ALPHABETS ═══
+  // ═══ ALPHABETS — no repeated letters across exercises ═══
   genAlphabets(count, grade, maxNum) {
     const exercises = [];
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const animals = { A: '🐊', B: '🐻', C: '🐱', D: '🐶', E: '🐘', F: '🦊', G: '🐸', H: '🐴', I: '🦎', J: '🦘', K: '🕊️', L: '🦁', M: '🐭', N: '🐮', O: '🦉', P: '🐧', Q: '🦆', R: '🐰', S: '🐍', T: '🐢', U: '🦄', V: '🦜', W: '🐋', X: '🦀', Y: '🐲', Z: '🦓' };
+    const usedLetters = new Set();
 
-    // Letter recognition
-    const letter = letters[Math.floor(Math.random() * 26)];
-    const options = this.shuffle([letter, ...this.getRandomLetters(letter, 3)]);
+    // Helper: pick a random unused letter
+    const pickFreshLetter = () => {
+      const avail = letters.split('').filter(l => !usedLetters.has(l));
+      const picked = avail[Math.floor(Math.random() * avail.length)] || letters[Math.floor(Math.random() * 26)];
+      usedLetters.add(picked);
+      return picked;
+    };
+
+    // 1) Letter recognition — pick fresh letter
+    const l1 = pickFreshLetter();
     exercises.push({
       type: 'choose',
-      question: `Which letter is this? <span class="ws-big-letter">${letter}</span>`,
-      image: animals[letter] || '🔤',
-      options: options.map(l => ({ value: l, label: l })),
-      answer: letter,
+      question: `Which letter is this? <span class="ws-big-letter">${l1}</span>`,
+      image: animals[l1] || '🔤',
+      options: this.shuffle([l1, ...this.getRandomLetters(l1, 3)]).map(l => ({ value: l, label: l })),
+      answer: l1,
       xp: 15
     });
 
-    // Match letter → animal
-    const matchLetters = this.shuffle(letters).slice(0, 3);
-    const matchPairs = matchLetters.map(l => ({
-      id: `alp_${l}`,
-      left: l,
-      right: animals[l] || '🔤'
-    }));
+    // 2) Match letter → animal — use 3 fresh letters
+    const matchLetters = [];
+    for (let i = 0; i < 3; i++) matchLetters.push(pickFreshLetter());
     exercises.push(this.genMatchExercise(
-      matchPairs,
+      matchLetters.map(l => ({ id: `alp_${l}`, left: l, right: animals[l] || '🔤' })),
       'Match each letter to its animal friend! 🐾'
     ));
 
-    // Uppercase → lowercase matching
+    // 3) Uppercase → lowercase — use fresh letter
     if (count > 2) {
-      const letter = letters[Math.floor(Math.random() * 26)];
-      const lower = letter.toLowerCase();
-      const options = this.shuffle([lower, ...this.getRandomLetters(lower, 3, true)]);
+      const l3 = pickFreshLetter();
+      const lower = l3.toLowerCase();
       exercises.push({
         type: 'choose',
-        question: `Find the small letter that goes with <span class="ws-big-letter">${letter}</span>`,
-        options: options.map(l => ({ value: l, label: l })),
+        question: `Find the small letter that goes with <span class="ws-big-letter">${l3}</span>`,
+        options: this.shuffle([lower, ...this.getRandomLetters(l3, 3, true)]).map(l => ({ value: l, label: l })),
         answer: lower,
         xp: 15
       });
     }
 
-    // Drag to order: letters in ABC order
+    // 4) Drag to order: 4 fresh consecutive letters (different from previous picks)
     if (count > 4) {
-      const sortStart = Math.floor(Math.random() * 22);
-      const sortLetters = letters.slice(sortStart, sortStart + 4).split('');
-      const dragItems = sortLetters.map((l, i) => ({
-        id: `dorder_${l}`,
-        label: l,
-        correctOrder: i
-      }));
+      // Pick a start letter that's not in usedLetters and has room for 4 consecutive
+      const avail = letters.split('').filter(l => !usedLetters.has(l));
+      const startIdx = Math.floor(Math.random() * Math.max(1, avail.length - 3));
+      const startL = avail[startIdx] || 'A';
+      const startPos = letters.indexOf(startL);
+      const dragLetters = letters.slice(startPos, Math.min(startPos + 4, 26)).split('');
+      dragLetters.forEach(l => usedLetters.add(l));
       exercises.push(this.genDragOrder(
-        dragItems,
+        dragLetters.map((l, i) => ({ id: `dorder_${l}`, label: l, correctOrder: i })),
         'Drag these letters into ABC order! 🔤'
       ));
     }
 
-    // Which word starts with...
+    // 5) Which word starts with... — use fresh letter
     if (count > 3) {
-      const letter = letters[Math.floor(Math.random() * 26)];
-      const correct = this.getAnimalWord(letter);
-      const wrong = this.getRandomWords(letter, 3);
-      const options = this.shuffle([correct, ...wrong]);
+      const l5 = pickFreshLetter();
+      const correct = this.getAnimalWord(l5);
       exercises.push({
         type: 'choose',
-        question: `Which word starts with the letter <span class="ws-big-letter">${letter}</span>?`,
-        options: options.map(w => ({ value: w, label: w })),
+        question: `Which word starts with the letter <span class="ws-big-letter">${l5}</span>?`,
+        options: this.shuffle([correct, ...this.getRandomWords(l5, 3)]).map(w => ({ value: w, label: w })),
         answer: correct,
         xp: 15
       });
     }
 
-    // Fill missing letter
+    // 6) Fill missing letter — use a word from a fresh letter
     if (count > 4) {
-      const word = this.getAnimalWord(letters[Math.floor(Math.random() * 26)]);
+      const l6 = pickFreshLetter();
+      const word = this.getAnimalWord(l6);
       const idx = Math.floor(Math.random() * word.length);
       const display = word.split('').map((c, i) => i === idx ? '___' : c).join(' ');
       exercises.push({
@@ -160,79 +162,90 @@ window.WorksheetEngine = {
     return exercises.slice(0, count);
   },
 
-  // ═══ NUMBERS ═══
+  // ═══ NUMBERS — no repeated values across exercises ═══
   genNumbers(count, grade, maxNum) {
     const exercises = [];
+    const usedNumbers = new Set();
+    const countEmojis = ['🌟', '🍎', '⭐', '🌈', '🎈', '🐟', '🌸', '🍪'];
+    const usedEmojis = new Set();
 
-    // Count objects
-    const num = Math.floor(Math.random() * maxNum) + 1;
-    const emojis = ['🌟', '🍎', '⭐', '🌈', '🎈', '🐟', '🌸', '🍪'].sort(() => Math.random() - 0.5);
-    const emoji = emojis[0];
-    const options = this.shuffle([num, ...this.getRandomNumbers(num, 3, maxNum)]);
+    const pickFreshEmoji = () => {
+      const avail = countEmojis.filter(e => !usedEmojis.has(e));
+      const picked = avail.length > 0 ? avail[Math.floor(Math.random() * avail.length)] : countEmojis[Math.floor(Math.random() * countEmojis.length)];
+      usedEmojis.add(picked);
+      return picked;
+    };
+
+    const pickFreshNum = (max = maxNum, min = 1) => {
+      // Try to find an unused number in range
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const n = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (!usedNumbers.has(n) || attempt === 19) {
+          usedNumbers.add(n);
+          return n;
+        }
+      }
+      const n = Math.floor(Math.random() * (max - min + 1)) + min;
+      usedNumbers.add(n);
+      return n;
+    };
+
+    // 1) Count objects
+    const num1 = pickFreshNum();
+    const emoji1 = pickFreshEmoji();
     exercises.push({
       type: 'choose',
-      question: `How many ${emoji} are there?`,
-      image: emoji.repeat(num),
-      options: options.map(n => ({ value: n.toString(), label: n.toString() })),
-      answer: num.toString(),
+      question: `How many ${emoji1} are there?`,
+      image: emoji1.repeat(num1),
+      options: this.shuffle([num1, ...this.getRandomNumbers(num1, 3, maxNum)]).map(n => ({ value: n.toString(), label: n.toString() })),
+      answer: num1.toString(),
       xp: 15
     });
 
-    // Match number → emoji count
-    const countNums = [1, 2, 3];
-    const countEmojis = ['🌟', '🍎', '⭐'];
-    const matchNumPairs = countNums.map(n => ({
-      id: `num_${n}`,
-      left: countEmojis[countNums.indexOf(n)].repeat(n),
-      right: n.toString()
-    }));
+    // 2) Match number → emoji count — use 3 fresh numbers with varied emoji
+    const matchNums = [pickFreshNum(Math.min(5, maxNum)), pickFreshNum(Math.min(5, maxNum)), pickFreshNum(Math.min(5, maxNum))].sort((a,b) => a-b);
+    const matchEmojis = ['🌟', '🍎', '⭐']; // keep these consistent for matching
     exercises.push(this.genMatchExercise(
-      matchNumPairs,
+      matchNums.map((n, i) => ({ id: `num_${n}`, left: matchEmojis[i].repeat(n), right: n.toString() })),
       'Match the stars to the right number! ⭐'
     ));
 
-    // Number sequencing
+    // 3) Number sequencing — use fresh numbers, track all seq values
     if (count > 2) {
-      const start = Math.floor(Math.random() * (maxNum - 3)) + 1;
+      const start = pickFreshNum(Math.max(1, maxNum - 3));
+      [start, start + 1, start + 2].forEach(n => usedNumbers.add(n));
       const seq = [start, start + 1, start + 2];
       const blank = Math.floor(Math.random() * 3);
-      const display = seq.map((n, i) => i === blank ? '___' : n).join(' → ');
       exercises.push({
         type: 'input',
-        question: `What number is missing? <span class="ws-word">${display}</span>`,
+        question: `What number is missing? <span class="ws-word">${seq.map((n, i) => i === blank ? '___' : n).join(' → ')}</span>`,
         answer: seq[blank].toString(),
         accept: seq[blank].toString(),
         xp: 20
       });
     }
 
-    // Match number to word
+    // 4) Match number to word — use fresh number
     if (count > 3) {
-      const num = Math.floor(Math.random() * 10) + 1;
       const numWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-      const word = numWords[num - 1];
-      const wrongWords = this.shuffle(numWords.filter(w => w !== word)).slice(0, 3);
-      const options = this.shuffle([word, ...wrongWords]);
+      const n = pickFreshNum(Math.min(10, maxNum));
+      const word = numWords[n - 1];
       exercises.push({
         type: 'choose',
-        question: `Which word matches the number <span class="ws-big-letter">${num}</span>?`,
-        options: options.map(w => ({ value: w, label: w })),
+        question: `Which word matches the number <span class="ws-big-letter">${n}</span>?`,
+        options: this.shuffle([word, ...this.shuffle(numWords.filter(w => w !== word)).slice(0, 3)]).map(w => ({ value: w, label: w })),
         answer: word,
         xp: 15
       });
     }
 
-    // Drag to order: numbers smallest → biggest
+    // 5) Drag to order — fresh set of 4 numbers
     if (count > 4) {
-      const dragNums = this.shuffle([1,2,3,4]).slice(0, 4);
-      const sorted = [...dragNums].sort((a,b) => a - b);
-      const dragItems = dragNums.map((n, i) => ({
-        id: `ndrag_${n}`,
-        label: n.toString(),
-        correctOrder: sorted.indexOf(n)
-      }));
+      const nums = [];
+      for (let i = 0; i < 4; i++) nums.push(pickFreshNum());
+      const sorted = [...nums].sort((a,b) => a - b);
       exercises.push(this.genDragOrder(
-        dragItems,
+        nums.map((n, i) => ({ id: `ndrag_${n}`, label: n.toString(), correctOrder: sorted.indexOf(n) })),
         'Drag these numbers from smallest to biggest! 🔢'
       ));
     }
@@ -240,161 +253,225 @@ window.WorksheetEngine = {
     return exercises.slice(0, count);
   },
 
-  // ═══ MATHS ═══
+  // ═══ MATHS — random equations every time, no fixed content ═══
   genMaths(count, grade, maxNum) {
     const exercises = [];
     const maxOp = grade < 2 ? 10 : maxNum;
+    const usedEquations = new Set(); // e.g. "3+2" to prevent same equation
 
-    // Addition
-    const a = Math.floor(Math.random() * maxOp) + 1;
-    const b = Math.floor(Math.random() * (maxOp - a)) + 1;
-    const correct = a + b;
-    const options = this.shuffle([correct, ...this.getRandomNumbers(correct, 3, maxOp * 2)]);
+    const pickEquation = () => {
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const a = Math.floor(Math.random() * maxOp) + 1;
+        const b = Math.floor(Math.random() * Math.min(maxOp, a)) + 1;
+        const key = `${a}+${b}`;
+        if (!usedEquations.has(key) || attempt > 20) {
+          usedEquations.add(key);
+          return { a, b, sum: a + b, key };
+        }
+      }
+      return { a: 1, b: 1, sum: 2, key: '1+1' };
+    };
+
+    // 1) Addition — random equation
+    const eq1 = pickEquation();
     exercises.push({
       type: 'choose',
-      question: `<span class="ws-big-letter">${a} + ${b} = ?</span>`,
-      options: options.map(n => ({ value: n.toString(), label: n.toString() })),
-      answer: correct.toString(),
+      question: `<span class="ws-big-letter">${eq1.a} + ${eq1.b} = ?</span>`,
+      options: this.shuffle([eq1.sum, ...this.getRandomNumbers(eq1.sum, 3, maxOp * 2)]).map(n => ({ value: n.toString(), label: n.toString() })),
+      answer: eq1.sum.toString(),
       xp: 20
     });
 
-    // Drag to match: equation → answer
-    const eqSources = [
-      { id: 'eq1', label: '1 + 1' },
-      { id: 'eq2', label: '2 + 1' },
-      { id: 'eq3', label: '2 + 2' }
-    ];
-    const eqTargets = [
-      { id: 't1', label: '= 2', correctSourceId: 'eq1' },
-      { id: 't2', label: '= 3', correctSourceId: 'eq2' },
-      { id: 't3', label: '= 4', correctSourceId: 'eq3' }
-    ];
+    // 2) Drag match: 3 random equations → answers (REPLACES the old fixed 1+1, 2+1, 2+2)
+    const dragEqs = [];
+    for (let i = 0; i < 3; i++) {
+      const e = pickEquation();
+      dragEqs.push(e);
+    }
     exercises.push(this.genDragMatch(
-      eqSources,
-      eqTargets,
+      dragEqs.map(e => ({ id: `deq_${e.key.replace('+', '_')}`, label: `${e.a} + ${e.b}` })),
+      dragEqs.map(e => ({ id: `dt_${e.key.replace('+', '_')}`, label: `= ${e.sum}`, correctSourceId: `deq_${e.key.replace('+', '_')}` })),
       'Drag each problem to its answer! ➕'
     ));
 
-    // Subtraction
+    // 3) Subtraction — different from addition
     if (count > 2) {
-      const a = Math.floor(Math.random() * maxOp) + 1;
-      const b = Math.floor(Math.random() * a) + 1;
-      const correct = a - b;
-      const options = this.shuffle([correct, ...this.getRandomNumbers(correct, 3, maxOp)]);
+      const subA = Math.floor(Math.random() * maxOp) + 2; // minuend ≥ 2 so result can be ≥ 0
+      const subB = Math.floor(Math.random() * (subA - 1)) + 1;
+      const diffKey = `${subA}-${subB}`;
+      if (!usedEquations.has(diffKey)) usedEquations.add(diffKey);
+      const correct = subA - subB;
       exercises.push({
         type: 'choose',
-        question: `<span class="ws-big-letter">${a} - ${b} = ?</span>`,
-        options: options.map(n => ({ value: n.toString(), label: n.toString() })),
+        question: `<span class="ws-big-letter">${subA} - ${subB} = ?</span>`,
+        options: this.shuffle([correct, ...this.getRandomNumbers(correct, 3, maxOp)]).map(n => ({ value: n.toString(), label: n.toString() })),
         answer: correct.toString(),
         xp: 20
       });
     }
 
-    // Visual counting
+    // 4) Visual counting — random count
     if (count > 3) {
       const total = Math.floor(Math.random() * 9) + 1;
-      const items = '●'.repeat(total);
       exercises.push({
         type: 'input',
-        question: `How many dots? ${items}`,
+        question: `How many dots? ${'●'.repeat(total)}`,
         answer: total.toString(),
         accept: total.toString(),
         xp: 15
       });
     }
 
-    // Word problem
+    // 5) Word problem — random items, different equation from above
     if (count > 4) {
-      const a = Math.floor(Math.random() * 5) + 1;
-      const b = Math.floor(Math.random() * 5) + 1;
-      const items = ['apples', 'candies', 'stars', 'toys', 'cookies'];
-      const item = items[Math.floor(Math.random() * items.length)];
-      exercises.push({
-        type: 'input',
-        question: `You have ${a} ${item}. Your friend gives you ${b} more. How many ${item} do you have now?`,
-        answer: (a + b).toString(),
-        accept: (a + b).toString(),
-        xp: 25
-      });
+      const items = ['apples', 'candies', 'stars', 'toys', 'cookies', 'gems', 'buttons', 'pencils', 'stickers', 'coins', 'marbles', 'books', 'flowers', 'shells', 'pebbles'];
+      const used = new Set();
+      const pickItem = () => {
+        for (let i = 0; i < 10; i++) {
+          const it = items[Math.floor(Math.random() * items.length)];
+          if (!used.has(it) || i > 8) { used.add(it); return it; }
+        }
+        return items[Math.floor(Math.random() * items.length)];
+      };
+      const item1 = pickItem();
+      const item2 = pickItem();
+      // Mix of addition and subtraction word problems
+      const isAddition = Math.random() > 0.4;
+      if (isAddition) {
+        const a = Math.floor(Math.random() * 5) + 1;
+        const b = Math.floor(Math.random() * 5) + 1;
+        exercises.push({
+          type: 'input',
+          question: `You have ${a} ${item1}. Your friend gives you ${b} more ${item2}. How many items do you have now?`,
+          answer: (a + b).toString(),
+          accept: (a + b).toString(),
+          xp: 25
+        });
+      } else {
+        const total = Math.floor(Math.random() * 8) + 3;
+        const taken = Math.floor(Math.random() * (total - 1)) + 1;
+        exercises.push({
+          type: 'input',
+          question: `You have ${total} ${item1}. You give away ${taken} to a friend. How many ${item1} are left?`,
+          answer: (total - taken).toString(),
+          accept: (total - taken).toString(),
+          xp: 25
+        });
+      }
     }
 
     return exercises.slice(0, count);
   },
 
-  // ═══ VOCABULARY ═══
+  // ═══ VOCABULARY — 3x larger word pools, no repeated words across exercises ═══
   genVocabulary(count, grade, maxNum) {
     const exercises = [];
-    const words = grade < 1 ?
-      ['cat', 'dog', 'sun', 'cup', 'bed', 'hat', 'bat', 'pen', 'bus', 'fox'] :
-      grade < 2 ?
-        ['fish', 'bird', 'book', 'tree', 'star', 'door', 'bell', 'kite', 'rain', 'milk'] :
-        ['pencil', 'garden', 'bridge', 'candle', 'rocket', 'planet', 'window', 'silver', 'castle', 'forest'];
+    // Expanded word pools — 30+ words per grade level
+    const wordPools = {
+      preschool: ['cat', 'dog', 'sun', 'cup', 'bed', 'hat', 'bat', 'pen', 'bus', 'fox',
+                  'pot', 'map', 'rug', 'bib', 'nut', 'mop', 'jar', 'bag', 'wig', 'fan',
+                  'yak', 'zoo', 'pie', 'hen', 'log', 'gem', 'ham', 'mug', 'tub', 'pig'],
+      kindergarten: ['fish', 'bird', 'book', 'tree', 'star', 'door', 'bell', 'kite', 'rain', 'milk',
+                    'frog', 'cake', 'nest', 'lamp', 'dish', 'desk', 'flag', 'soap', 'fork', 'leaf',
+                    'keys', 'ring', 'tent', 'rock', 'barn', 'comb', 'drum', 'hand', 'sock', 'doll'],
+      higher: ['pencil', 'garden', 'bridge', 'candle', 'rocket', 'planet', 'window', 'silver', 'castle', 'forest',
+               'pirate', 'dragon', 'knight', 'temple', 'magpie', 'goblin', 'throne', 'shrine', 'beetle', 'cactus',
+               'banana', 'puzzle', 'basket', 'mitten', 'saddle', 'marble', 'ribbon', 'walnut', 'violet', 'button']
+    };
+    const allWords = grade < 1 ? wordPools.preschool : grade < 2 ? wordPools.kindergarten : wordPools.higher;
+    const usedWords = new Set();
 
-    // Word-picture matching
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const word = words[Math.floor(Math.random() * words.length)];
+    const pickFreshWord = () => {
+      const avail = allWords.filter(w => !usedWords.has(w));
+      if (avail.length === 0) {
+        // Pool exhausted — reset tracking and continue
+        usedWords.clear();
+        return allWords[Math.floor(Math.random() * allWords.length)];
+      }
+      const picked = avail[Math.floor(Math.random() * avail.length)];
+      usedWords.add(picked);
+      return picked;
+    };
+
+    // Sentences for fill-in-blank — expanded to cover more words
+    const sentences = {
+      'cat': 'The ___ sat on the mat.',
+      'dog': 'The ___ likes to play ball.',
+      'sun': 'The ___ is bright today.',
+      'book': 'I read a ___ every night.',
+      'tree': 'The ___ has green leaves.',
+      'star': 'I can see a ___ in the sky.',
+      'fish': 'The ___ swims in the water.',
+      'bird': 'A ___ flew over the house.',
+      'rain': 'The ___ falls from clouds.',
+      'milk': 'I drink ___ every morning.',
+      'frog': 'The green ___ jumped in the pond.',
+      'cake': 'I love eating ___ on my birthday.',
+      'nest': 'The bird sits in its ___.',
+      'lamp': 'Turn on the ___ when it is dark.',
+      'desk': 'I do my homework at my ___.',
+      'flag': 'The ___ waves in the wind.',
+      'rocket': 'The ___ flew to the moon.',
+      'castle': 'The princess lives in a ___.',
+      'forest': 'The bear lives in the ___.',
+      'candle': 'Light the ___ on the cake.',
+      'garden': 'Flowers grow in the ___.',
+      'pirate': 'The ___ sails the ocean.',
+      'dragon': 'The ___ breathes fire.',
+      'knight': 'The ___ wore shiny armor.',
+      'bridge': 'Cross the ___ to reach the castle.',
+      'puzzle': 'I put together the ___.',
+      'basket': 'Put the apples in the ___.',
+      'banana': 'The monkey ate a yellow ___.'
+    };
+
+    // 1) Word-picture matching — 1 to 2 exercises with different words
+    const matchCount = Math.min(2, Math.max(1, count - 2));
+    for (let i = 0; i < matchCount; i++) {
+      const word = pickFreshWord();
       const emoji = this.wordToEmoji(word);
-      const wrongWords = this.shuffle(words.filter(w => w !== word)).slice(0, 3);
-      const options = this.shuffle([word, ...wrongWords]);
       exercises.push({
         type: 'choose',
         question: `Which word matches this picture? ${emoji}`,
-        options: options.map(w => ({ value: w, label: w })),
+        options: this.shuffle([word, ...this.shuffle(allWords.filter(w => w !== word)).slice(0, 3)]).map(w => ({ value: w, label: w })),
         answer: word,
         xp: 15
       });
     }
 
-    // Fill in blank
+    // 2) Fill in the blank — different word
     if (count > 2) {
-      const word = words[Math.floor(Math.random() * words.length)];
-      const sentences = {
-        'cat': 'The ___ sat on the mat.',
-        'dog': 'The ___ likes to play ball.',
-        'sun': 'The ___ is bright today.',
-        'book': 'I read a ___ every night.',
-        'tree': 'The ___ has green leaves.',
-        'star': 'I can see a ___ in the sky.',
-        'fish': 'The ___ swims in the water.',
-        'bird': 'A ___ flew over the house.',
-        'rain': 'The ___ falls from clouds.',
-        'milk': 'I drink ___ every morning.'
-      };
-      const sentence = sentences[word] || `I see a ___`;
-      const display = sentence.replace(word, '___');
-      const wrongWords = this.shuffle(words.filter(w => w !== word)).slice(0, 3);
-      const options = this.shuffle([word, ...wrongWords]);
+      const word = pickFreshWord();
+      const display = sentences[word] ? sentences[word].replace(word, '___') : `I see a ___`;
       exercises.push({
         type: 'choose',
         question: `Fill in the blank: "${display}"`,
-        options: options.map(w => ({ value: w, label: w })),
+        options: this.shuffle([word, ...this.shuffle(allWords.filter(w => w !== word)).slice(0, 3)]).map(w => ({ value: w, label: w })),
         answer: word,
         xp: 20
       });
     }
 
-    // Drag match: word → emoji
-    const vocabMatchWords = this.shuffle(words).slice(0, 3);
-    const vocabSources = vocabMatchWords.map(w => ({ id: `vs_${w}`, label: this.wordToEmoji(w) || '📝' }));
-    const vocabTargets = vocabMatchWords.map(w => ({ id: `vt_${w}`, label: w, correctSourceId: `vs_${w}` }));
+    // 3) Drag match: emoji → word — 3 fresh words
+    const dragWords = [];
+    for (let i = 0; i < 3; i++) dragWords.push(pickFreshWord());
     exercises.push(this.genDragMatch(
-      vocabSources,
-      vocabTargets,
+      dragWords.map(w => ({ id: `vs_${w}`, label: this.wordToEmoji(w) || '📝' })),
+      dragWords.map(w => ({ id: `vt_${w}`, label: w, correctSourceId: `vs_${w}` })),
       'Drag each picture to its word! 📖'
     ));
 
-    // Unscramble
+    // 4) Unscramble — different word, randomized scramble (not just swap ends)
     if (count > 3) {
-      const word = words[Math.floor(Math.random() * words.length)];
-      let letters = word.split('');
-      // Ensure at least two letters are swapped differently
-      if (letters.length > 1) {
-        [letters[0], letters[letters.length - 1]] = [letters[letters.length - 1], letters[0]];
-      }
-      const scrambled = letters.join('');
+      const word = pickFreshWord();
+      const letters = this.shuffle(word.split('')).join('');
+      // Ensure scrambled !== original
+      const finalScrambled = letters === word
+        ? word.slice(1) + word[0]
+        : letters;
       exercises.push({
         type: 'input',
-        question: `Fix the mixed-up letters! <span class="ws-big-letter">${scrambled}</span>`,
+        question: `Fix the mixed-up letters! <span class="ws-big-letter">${finalScrambled}</span>`,
         hint: `It starts with "${word[0]}"`,
         answer: word,
         accept: word,
@@ -405,7 +482,7 @@ window.WorksheetEngine = {
     return exercises.slice(0, count);
   },
 
-  // ═══ COLORING ═══
+  // ═══ COLORING — expanded colors + objects, no repeated colors ═══
   genColoring(count, grade) {
     const exercises = [];
     const colors = [
@@ -414,47 +491,74 @@ window.WorksheetEngine = {
       { name: 'green', emoji: '🟢' },
       { name: 'yellow', emoji: '🟡' },
       { name: 'purple', emoji: '🟣' },
-      { name: 'orange', emoji: '🟠' }
+      { name: 'orange', emoji: '🟠' },
+      { name: 'pink', emoji: '🩷' },
+      { name: 'brown', emoji: '🟤' }
     ];
+    const usedColors = new Set();
 
-    // Color recognition
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const wrongColors = this.shuffle(colors.filter(c => c.name !== color.name)).slice(0, 3);
-    const options = this.shuffle([color, ...wrongColors]);
+    const pickFreshColor = () => {
+      const avail = colors.filter(c => !usedColors.has(c.name));
+      if (avail.length === 0) usedColors.clear();
+      const pool = avail.length > 0 ? avail : colors;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      usedColors.add(picked.name);
+      return picked;
+    };
+
+    // 1) Color recognition
+    const c1 = pickFreshColor();
     exercises.push({
       type: 'choose',
-      question: `What color is this? ${color.emoji}`,
-      options: options.map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
-      answer: color.name,
+      question: `What color is this? ${c1.emoji}`,
+      options: this.shuffle([c1, ...this.shuffle(colors.filter(c => c.name !== c1.name)).slice(0, 3)]).map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
+      answer: c1.name,
       xp: 10
     });
 
-    // Drag match: color → object
-    const colorItems = [
-      { name: 'red', obj: '🍎' },
-      { name: 'yellow', obj: '⭐' },
-      { name: 'green', obj: '🍀' }
+    // 2) Drag match: color → object — varied pairs each time
+    const colorObjPool = [
+      { name: 'red', obj: '🍎' }, { name: 'red', obj: '🌹' },
+      { name: 'blue', obj: '🌊' }, { name: 'blue', obj: '💧' },
+      { name: 'green', obj: '🍀' }, { name: 'green', obj: '🌿' },
+      { name: 'yellow', obj: '⭐' }, { name: 'yellow', obj: '🌻' },
+      { name: 'purple', obj: '🍇' }, { name: 'purple', obj: '🔮' },
+      { name: 'orange', obj: '🍊' }, { name: 'orange', obj: '🎃' },
+      { name: 'pink', obj: '🌸' }, { name: 'pink', obj: '🦩' },
+      { name: 'brown', obj: '🧸' }, { name: 'brown', obj: '🌰' }
     ];
-    const colSources = colorItems.map(c => ({ id: `cs_${c.name}`, label: c.name }));
-    const colTargets = colorItems.map(c => ({ id: `ct_${c.name}`, label: c.obj, correctSourceId: `cs_${c.name}` }));
+    // Pick 3 random color-object pairs (different colors)
+    const shuffledPool = this.shuffle(colorObjPool);
+    const usedColorNames = new Set();
+    const pickedPairs = [];
+    for (const pair of shuffledPool) {
+      if (pickedPairs.length >= 3) break;
+      if (!usedColorNames.has(pair.name)) {
+        usedColorNames.add(pair.name);
+        pickedPairs.push(pair);
+      }
+    }
+    // Fallback if not enough unique colors found
+    while (pickedPairs.length < 3) {
+      pickedPairs.push({ name: 'red', obj: '🍎' });
+    }
+    pickedPairs.forEach(p => usedColors.add(p.name));
     exercises.push(this.genDragMatch(
-      colSources,
-      colTargets,
+      pickedPairs.map(c => ({ id: `cs_${c.name}`, label: c.name })),
+      pickedPairs.map(c => ({ id: `ct_${c.name}`, label: c.obj, correctSourceId: `cs_${c.name}` })),
       'Drag each color to its object! 🎨'
     ));
 
-    // Color by instruction
+    // 3) Color by instruction — fresh color + random item
     if (count > 2) {
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const items = ['🍎', '🌈', '⭐', '🎨'];
+      const c3 = pickFreshColor();
+      const items = ['🍎', '🌈', '⭐', '🎨', '🦋', '🐞', '🌻', '💎', '🎈', '🚗'];
       const item = items[Math.floor(Math.random() * items.length)];
-      const wrongColors = this.shuffle(colors.filter(c => c.name !== color.name)).slice(0, 3);
-      const options = this.shuffle([color, ...wrongColors]);
       exercises.push({
         type: 'choose',
         question: `What color should this ${item} be?`,
-        options: options.map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
-        answer: color.name,
+        options: this.shuffle([c3, ...this.shuffle(colors.filter(c => c.name !== c3.name)).slice(0, 3)]).map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
+        answer: c3.name,
         xp: 10
       });
     }
@@ -462,73 +566,117 @@ window.WorksheetEngine = {
     return exercises.slice(0, count);
   },
 
-  // ═══ PUZZLES ═══
+  // ═══ PUZZLES — varied patterns, no repeated sequences ═══
   genPuzzles(count, grade, maxNum) {
     const exercises = [];
+    const allEmojis = ['🔵', '🟢', '🟡', '🟣', '🔴', '🟠', '🔶', '🔷', '🟩', '🟥', '🟨', '🟪'];
 
-    // Pattern completion
-    const emojis = ['🔵', '🟢', '🟡', '🟣', '🔴', '🟠'];
-    const used = this.shuffle(emojis).slice(0, 3);
-    const patternLen = Math.floor(Math.random() * 2) + 2;
+    // 1) Pattern completion — random pattern from different emoji sets each time
+    const patternSets = [
+      ['🔵', '🟢', '🟡', '🔴'],
+      ['🐱', '🐶', '🐰', '🐸'],
+      ['⭐', '🌈', '💫', '🌟'],
+      ['🍎', '🍊', '🍋', '🍇'],
+      ['🚗', '🚌', '🚲', '🚁'],
+      ['🌳', '🌻', '🌵', '🌺']
+    ];
+    const patternSet = patternSets[Math.floor(Math.random() * patternSets.length)];
+    const shuffledSet = this.shuffle(patternSet);
+    const usedCount = Math.floor(Math.random() * 2) + 2; // 2 or 3
+    const patternEmojis = shuffledSet.slice(0, usedCount);
+    const patternLen = 3; // always show 3 items
     const pattern = [];
-    for (let p = 0; p < patternLen; p++) pattern.push(used[p % used.length]);
-    const next = used[patternLen % used.length];
-    const display = pattern.join(' ') + ' → ___';
-    const wrong = this.shuffle(emojis.filter(e => e !== next)).slice(0, 3);
-    const options = this.shuffle([next, ...wrong]);
+    for (let p = 0; p < patternLen; p++) pattern.push(patternEmojis[p % patternEmojis.length]);
+    const next = patternEmojis[patternLen % patternEmojis.length];
+    const wrongAnswers = this.shuffle(allEmojis.filter(e => e !== next)).slice(0, 3);
     exercises.push({
       type: 'choose',
-      question: `What comes next? <span class="ws-big-letter">${display}</span>`,
-      options: options.map(e => ({ value: e, label: e })),
+      question: `What comes next? <span class="ws-big-letter">${pattern.join(' ')} → ___</span>`,
+      options: this.shuffle([next, ...wrongAnswers]).map(e => ({ value: e, label: e })),
       answer: next,
       xp: 20
     });
 
-    // Sort pattern sequence
-    const sortEmojis = ['🔵', '🟢', '🟡', '🔴'];
-    const sortPatternItems = sortEmojis.map((e, i) => ({
-      id: `pats_${i}`,
-      label: e,
-      correctOrder: i
-    }));
+    // 2) Sort by sequence — varied sort orders each time
+    const sortSets = [
+      { items: ['🔵', '🟢', '🟡', '🔴'], label: 'rainbow order', order: [0,1,2,3] },
+      { items: ['❶', '❷', '❸', '❹'], label: 'number order', order: [0,1,2,3] },
+      { items: ['🌱', '🌿', '🌳', '🌲'], label: 'size order (small→big)', order: [0,1,2,3] },
+      { items: ['🐣', '🐥', '🐔', '🦃'], label: 'growth order', order: [0,1,2,3] }
+    ];
+    const sortSet = sortSets[Math.floor(Math.random() * sortSets.length)];
     exercises.push(this.genSortExercise(
-      sortPatternItems,
-      'Put these colors in rainbow order! 🌈'
+      sortSet.items.map((e, i) => ({ id: `psort_${i}`, label: e, correctOrder: sortSet.order[i] })),
+      `Put these in ${sortSet.label}! 🧩`
     ));
 
-    // Drag zone: sort pattern items into shape vs color groups
+    // 3) Drag zone: varied categories each time
     if (count > 2) {
-      const dragZoneItems = [
-        { id: 'pz1', label: '🔵', zoneId: 'shape' },
-        { id: 'pz2', label: '🟢', zoneId: 'shape' },
-        { id: 'pz3', label: '🟡', zoneId: 'shape' },
-        { id: 'pz4', label: '🔴', zoneId: 'color' },
-        { id: 'pz5', label: '🟣', zoneId: 'color' },
-        { id: 'pz6', label: '🟠', zoneId: 'color' }
+      const zoneConfigs = [
+        {
+          items: [
+            { id: 'pz1', label: '🔵', zoneId: 'circle' },
+            { id: 'pz2', label: '🟢', zoneId: 'circle' },
+            { id: 'pz3', label: '🟡', zoneId: 'circle' },
+            { id: 'pz4', label: '🔶', zoneId: 'diamond' },
+            { id: 'pz5', label: '🔷', zoneId: 'diamond' }
+          ],
+          zones: [
+            { id: 'circle', name: '🟣 Circles' },
+            { id: 'diamond', name: '🔷 Diamonds' }
+          ],
+          question: 'Sort the shapes! 🧩'
+        },
+        {
+          items: [
+            { id: 'pz1', label: '🍎', zoneId: 'fruit' },
+            { id: 'pz2', label: '🍊', zoneId: 'fruit' },
+            { id: 'pz3', label: '🍋', zoneId: 'fruit' },
+            { id: 'pz4', label: '🥕', zoneId: 'veggie' },
+            { id: 'pz5', label: '🥦', zoneId: 'veggie' }
+          ],
+          zones: [
+            { id: 'fruit', name: '🍎 Fruits' },
+            { id: 'veggie', name: '🥦 Veggies' }
+          ],
+          question: 'Sort food into Fruit vs Veggie! 🧩'
+        },
+        {
+          items: [
+            { id: 'pz1', label: '🐱', zoneId: 'pet' },
+            { id: 'pz2', label: '🐶', zoneId: 'pet' },
+            { id: 'pz3', label: '🐰', zoneId: 'pet' },
+            { id: 'pz4', label: '🦁', zoneId: 'wild' },
+            { id: 'pz5', label: '🐯', zoneId: 'wild' }
+          ],
+          zones: [
+            { id: 'pet', name: '🐱 Pets' },
+            { id: 'wild', name: '🦁 Wild Animals' }
+          ],
+          question: 'Sort animals into Pets vs Wild! 🧩'
+        }
       ];
-      const dragZones = [
-        { id: 'shape', name: '🔵 Shapes' },
-        { id: 'color', name: '🔴 Colors' }
-      ];
-      exercises.push(this.genDragZone(
-        dragZoneItems,
-        dragZones,
-        'Drag items into the right group! 🧩'
-      ));
+      const zoneConfig = zoneConfigs[Math.floor(Math.random() * zoneConfigs.length)];
+      exercises.push(this.genDragZone(zoneConfig.items, zoneConfig.zones, zoneConfig.question, 35));
     }
 
-    // Which comes next in sequence
+    // 4) Sequence prediction — random starting position
     if (count > 3) {
-      const seq = ['❶', '❷', '❸', '❹', '❺'];
-      const start = Math.floor(Math.random() * 2) + 1;
-      const display = seq.slice(0, start + 2).join(' → ') + ' → ___';
-      const next = seq[start + 2];
+      const seqSets = [
+        ['❶', '❷', '❸', '❹', '❺'],
+        ['⬜', '⬛', '⬜', '⬛', '⬜'],
+        ['🌑', '🌒', '🌓', '🌔', '🌕'],
+        ['🎵', '🎶', '🎵', '🎶', '🎵']
+      ];
+      const seq = seqSets[Math.floor(Math.random() * seqSets.length)];
+      const start = Math.floor(Math.random() * 3);
+      const display = seq.slice(start, start + 3).join(' → ') + ' → ___';
+      const next = seq[start + 3] || seq[seq.length - 1];
       const wrong = this.shuffle(seq.filter(s => s !== next)).slice(0, 3);
-      const options = this.shuffle([next, ...wrong]);
       exercises.push({
         type: 'choose',
         question: `What comes next? <span class="ws-big-letter">${display}</span>`,
-        options: options.map(e => ({ value: e, label: e })),
+        options: this.shuffle([next, ...wrong]).map(e => ({ value: e, label: e })),
         answer: next,
         xp: 15
       });
