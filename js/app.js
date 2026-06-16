@@ -64,6 +64,7 @@ const App = {
   // ── ROUTING ──
   handleRoute() {
     this.pendingQuest = null; // Clear stale quest state
+    this.pendingSubject = null; // Clear stale subject state
     let hash = window.location.hash.slice(1) || '/';
     // Parse query params from hash (e.g., /worksheet?quest=1)
     const qIndex = hash.indexOf('?');
@@ -572,12 +573,12 @@ const App = {
         </div>
         <div class="generator__controls">
           <select class="generator__select" id="${prefix}Subject" ${isQuestMode && questSubjectIdx >= 0 ? 'disabled' : ''}>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 0 ? 'selected' : ''}>🔤 Realm: Alphabets</option>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 1 ? 'selected' : ''}>🔢 Realm: Numbers</option>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 2 ? 'selected' : ''}>➕ Realm: Maths</option>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 3 ? 'selected' : ''}>📖 Realm: Vocabulary</option>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 4 ? 'selected' : ''}>🎨 Realm: Coloring</option>
-            <option ${(subjectIdx >= 0 ? subjectIdx : questSubjectIdx) === 5 ? 'selected' : ''}>🧩 Realm: Puzzles</option>
+            <option ${subjectIdx === 0 ? 'selected' : ''}>🔤 Realm: Alphabets</option>
+            <option ${subjectIdx === 1 ? 'selected' : ''}>🔢 Realm: Numbers</option>
+            <option ${subjectIdx === 2 ? 'selected' : ''}>➕ Realm: Maths</option>
+            <option ${subjectIdx === 3 ? 'selected' : ''}>📖 Realm: Vocabulary</option>
+            <option ${subjectIdx === 4 ? 'selected' : ''}>🎨 Realm: Coloring</option>
+            <option ${subjectIdx === 5 ? 'selected' : ''}>🧩 Realm: Puzzles</option>
           </select>
           <select class="generator__select" id="${prefix}Grade">
             <option ${isQuestMode && questData.level <= 1 ? 'selected' : ''}>👶 Grade: Preschool</option>
