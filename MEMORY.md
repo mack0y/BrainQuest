@@ -74,14 +74,16 @@ BrainQuest/
 │   │   ├── getLevelInfo (XP calc with per-level scaling)
 │   │   └── isLoggedIn check
 │   │
-│   ├── worksheets.js        # Worksheet engine (~720 lines)
+│   ├── worksheets.js        # Worksheet engine (~800 lines)
 │   │   ├── window.WorksheetEngine — global object (uses window. for console/dev access)
 │   │   ├── generate(subject, grade, difficulty) — builds a full worksheet
 │   │   ├── Subject generators (genAlphabets, genNumbers, genMaths, genVocabulary, genColoring, genPuzzles)
-│   │   ├── renderWorksheet(worksheet) — renders interactive HTML
-│   │   ├── attachHandlers(worksheet, container, onQuestComplete) — binds clicks, inputs, check/retry; optional quest callback for Claim Reward button
+│   │   ├── New exercise helpers: genMatchExercise (click-to-match columns), genSortExercise (tap-to-order), genDragOrder (drag-to-reorder), genDragMatch (drag-source-to-target), genDragZone (drag-into-category-zones)
+│   │   ├── renderWorksheet(worksheet) — renders interactive HTML for choose, input, match, sort, dragorder, dragmatch, dragzone types
+│   │   ├── attachHandlers(worksheet, container, onQuestComplete) — binds clicks, inputs, match/sort clicks, drag-and-drop (HTML5 DnD + touch), check/retry; optional quest callback for Claim Reward button
 │   │   ├── saveCompletion — awards XP + persists to worksheet_completions table
-│   │   └── Helpers (shuffle, wordToEmoji, getAnimalWord, subjectColor)
+│   │   ├── Drag system: initDragHandlers/removeDragHandlers/processDragDrop with HTML5 DnD (dragstart/dragover/drop) + touch events (touchstart/touchmove/touchend with floating clone and elementFromPoint hit detection)
+│   │   └── Helpers (shuffle, wordToEmoji, getAnimalWord, subjectColor, renderMatch, renderSort, renderDragOrder, renderDragMatch, renderDragZone)
 │   │
 │   ├── gamification.js     # Gamification engine (179 lines)
 │   │   ├── addXp (add XP, check level-up, carry over)
@@ -440,6 +442,8 @@ Then open `http://localhost:3000` in your browser.
 | FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) | `d7f74d3` |
 | Scroll reveal animations never triggered — `.reveal` elements stayed at `opacity: 0` because `initScrollReveal()` was called before async-rendered content existed in the DOM | Added `await` to 5 async page renderers in `renderPage()`; added defensive `UI.initScrollReveal()` calls after `renderQuestPath()`, `generateWorksheetFor()`, badge card appending, and worksheet re-renders in `attachHandlers()` | `9a1621e` |
 | Quests instantly completed on button click — no worksheet required, no actual learning | Replaced instant `Gamification.completeQuest()` with navigation to `#/worksheet?quest=ID`; added quest-mode worksheet rendering with pre-selected subject, quest banner, and "Claim Reward" button on ≥60% score; added `completePendingQuest()` method | `6720bd7` |
+| Navigation race condition — `navigate()` called `render()` directly AND hashchange fired a second render, causing stale state overwriting quest data | navigate() returns early when setting hash; render happens only via hashchange→handleRoute | `9ea4a35` |
+| Match/sort exercise handler duplication — each interaction re-called attachHandlers(), accumulating event listeners | Replaced per-element listeners with event delegation; stored handler refs with removeEventListener before re-adding | `b57f195` + `6e78e23` |
 
 ---
 
@@ -459,12 +463,24 @@ Then open `http://localhost:3000` in your browser.
 
 | Subject | Exercise Modes | Interaction |
 |---------|---------------|:-----------:|
-| 🔤 **Alphabets** | Letter recognition, uppercase→lowercase matching, which word starts with..., fill missing letter | Click / Input |
-| 🔢 **Numbers** | Count objects, number sequencing, match number→word, greater/less than | Click / Input |
-| ➕ **Maths** | Addition, subtraction, visual dot counting, word problems | Click / Input |
-| 📖 **Vocabulary** | Word→emoji matching, fill-in-the-blank sentences, unscramble | Click / Input |
-| 🎨 **Coloring** | Color recognition (emoji matching), what color should this be? | Click |
-| 🧩 **Puzzles** | Pattern completion (emoji sequences), odd one out, sequence prediction | Click |
+| 🔤 **Alphabets** | Letter recognition, uppercase→lowercase matching, which word starts with..., fill missing letter, **drag-to-order ABC!** | Click / Input / Drag |
+| 🔢 **Numbers** | Count objects, number sequencing, match number→word, **drag-to-order smallest→biggest** | Click / Input / Drag |
+| ➕ **Maths** | Addition, subtraction, visual dot counting, word problems, **drag-to-match equation→answer** | Click / Input / Drag |
+| 📖 **Vocabulary** | Word→emoji matching, fill-in-the-blank sentences, unscramble, **drag-to-match emoji→word** | Click / Input / Drag |
+| 🎨 **Coloring** | Color recognition (emoji matching), what color should this be?, **drag-to-match color→object** | Click / Drag |
+| 🧩 **Puzzles** | Pattern completion (emoji sequences), odd one out, sequence prediction, **drag-to-zone shape vs color groups** | Click / Drag |
+
+### Exercise Interaction Types
+
+| Type | Description | Scoring |
+|------|-------------|---------|
+| `choose` | Click an option button to select | Selected value matches answer |
+| `input` | Type answer in text field | Input matches answer (case-insensitive) |
+| `match` | Click left item, then click right item to match pair | All pairs correctly matched (all-or-nothing) |
+| `sort` | Tap items from pool to order area (click-to-order) | All items in correct position (all-or-nothing) |
+| `dragorder` | Drag items vertically to reorder (HTML5 DnD + touch) | All items in correct position (all-or-nothing) |
+| `dragmatch` | Drag source items onto drop target zones | All targets have correct source (all-or-nothing) |
+| `dragzone` | Drag items into category zones | All items in correct zone (all-or-nothing) |
 
 ### Difficulty Scaling
 
@@ -477,7 +493,7 @@ Then open `http://localhost:3000` in your browser.
 
 ### Scoring
 
-- Each exercise has an `xp` value (10–25 depending on complexity)
+- Each exercise has an `xp` value (10–35 depending on complexity; drag types = 30–35)
 - Total worksheet XP = sum of all exercise XP values
 - Score = `(correct / total exercises) * 100`%
 - Awarded XP = `totalXP * (score / 100)` (percentage-based)
@@ -496,10 +512,28 @@ WorksheetEngine.generate(subject, grade, difficulty)
   │   ├─ genColoring(count, grade)
   │   └─ genPuzzles(count, grade, maxNum)
   │
+  ├─ Exercise helpers
+  │   ├─ genMatchExercise(pairs, question) — click-to-match columns
+  │   ├─ genSortExercise(items, question) — tap-to-order
+  │   ├─ genDragOrder(items, question) — drag-to-reorder list
+  │   ├─ genDragMatch(sources, targets, question) — drag source to target
+  │   └─ genDragZone(items, zones, question) — drag into category zones
+  │
   ├─ renderWorksheet(worksheet) → HTML string
+  │   ├─ renderMatch(ex) — re-render match columns after interaction
+  │   ├─ renderSort(ex, isResults) — re-render sort area
+  │   ├─ renderDragOrder(ex, isResults) — reorderable list
+  │   ├─ renderDragMatch(ex, isResults) — sources + target zones
+  │   └─ renderDragZone(ex, isResults) — pool + category zones
   │
   └─ attachHandlers(worksheet, container)
       ├─ Option clicks (toggle selection)
+      ├─ Match delegation (click left→right to pair)
+      ├─ Sort delegation (click pool→order to place/remove)
+      ├─ Drag system (HTML5 DnD + touch events with floating clone)
+      │   ├─ initDragHandlers — sets up all DnD/touch listeners
+      │   ├─ removeDragHandlers — cleanup to prevent listener accumulation
+      │   └─ processDragDrop — routes drop to correct exercise type
       ├─ Check Answers (score + re-render results)
       ├─ Try Again (generate fresh worksheet)
       └─ Enter key shortcut for inputs
