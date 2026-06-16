@@ -3,7 +3,7 @@
 // Generates dynamic interactive worksheets
 // ═══════════════════════════════════════════
 
-const WorksheetEngine = {
+window.WorksheetEngine = {
 
   // ── GENERATE a full worksheet ──
   generate(subject, grade, difficulty) {
