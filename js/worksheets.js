@@ -706,80 +706,70 @@ window.WorksheetEngine = {
       });
     });
 
-    // Match clicks
-    container.querySelectorAll('.ws-match__item[data-side="left"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
-        const ex = worksheet.exercises.find(e => e.id === exId);
-        if (!ex) return;
+    // Match clicks — use event delegation on container to avoid handler duplication
+    const matchHandler = (e) => {
+      const btn = e.target.closest('.ws-match__item');
+      if (!btn) return;
+      const exId = parseInt(btn.closest('.ws-ex')?.dataset?.id);
+      if (!exId) return;
+      const ex = worksheet.exercises.find(ex => ex.id === exId);
+      if (!ex || ex.type !== 'match') return;
+      const matchDiv = btn.closest('.ws-match');
+      if (!matchDiv) return;
+
+      if (btn.dataset.side === 'left') {
         const pid = btn.dataset.mid;
-        // If already matched, unmatch
+        // If already matched, unmatch it
         if (ex.userMatches[pid]) {
-          const rightPid = ex.userMatches[pid];
           delete ex.userMatches[pid];
           delete ex._selectedLeft;
-          container.querySelector('.ws-match').innerHTML = this.renderMatch(ex);
-          this.attachHandlers(worksheet, container, onQuestComplete);
+          matchDiv.innerHTML = this.renderMatch(ex);
           return;
         }
+        // Select this left item
         ex._selectedLeft = pid;
-        // Update UI
-        container.querySelectorAll('.ws-match__item--selected').forEach(el => el.classList.remove('ws-match__item--selected'));
+        matchDiv.querySelectorAll('.ws-match__item--selected').forEach(el => el.classList.remove('ws-match__item--selected'));
         btn.classList.add('ws-match__item--selected');
-      });
-    });
-
-    container.querySelectorAll('.ws-match__item[data-side="right"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
-        const ex = worksheet.exercises.find(e => e.id === exId);
-        if (!ex || !ex._selectedLeft) return;
+      } else if (btn.dataset.side === 'right') {
+        if (!ex._selectedLeft) return;
         const leftPid = ex._selectedLeft;
         const rightPid = btn.dataset.mid;
+        // Check if this right item is already matched to another left item
+        const alreadyMatched = Object.entries(ex.userMatches).find(([, v]) => v === rightPid);
+        if (alreadyMatched) return; // already matched, can't re-match
         ex.userMatches[leftPid] = rightPid;
         delete ex._selectedLeft;
-        // Re-render just the match part
-        const matchDiv = btn.closest('.ws-match');
-        if (matchDiv) {
-          matchDiv.innerHTML = this.renderMatch(ex);
-        }
-        this.attachHandlers(worksheet, container, onQuestComplete);
-      });
-    });
+        matchDiv.innerHTML = this.renderMatch(ex);
+      }
+    };
+    container.addEventListener('click', matchHandler);
 
-    // Sort clicks — add to order
-    container.querySelectorAll('.ws-sort__pool .ws-sort__item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
-        const ex = worksheet.exercises.find(e => e.id === exId);
-        if (!ex) return;
-        const sid = btn.dataset.sid;
+    // Sort clicks — use event delegation on container
+    const sortHandler = (e) => {
+      const btn = e.target.closest('.ws-sort__item');
+      if (!btn) return;
+      const exId = parseInt(btn.closest('.ws-ex')?.dataset?.id);
+      if (!exId) return;
+      const ex = worksheet.exercises.find(ex => ex.id === exId);
+      if (!ex || ex.type !== 'sort') return;
+      const sortDiv = btn.closest('.ws-sort');
+      if (!sortDiv) return;
+
+      const sid = btn.dataset.sid;
+      const isPlaced = btn.closest('.ws-sort__order');
+
+      if (isPlaced) {
+        // Remove from order
+        ex.userOrder = ex.userOrder.filter(id => id !== sid);
+      } else {
+        // Add to order (prevent duplicates)
         if (!ex.userOrder.includes(sid)) {
           ex.userOrder.push(sid);
         }
-        const sortDiv = btn.closest('.ws-sort');
-        if (sortDiv) {
-          sortDiv.innerHTML = this.renderSort(ex, false);
-        }
-        this.attachHandlers(worksheet, container, onQuestComplete);
-      });
-    });
-
-    // Sort clicks — remove from order
-    container.querySelectorAll('.ws-sort__order .ws-sort__item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
-        const ex = worksheet.exercises.find(e => e.id === exId);
-        if (!ex) return;
-        const sid = btn.dataset.sid;
-        ex.userOrder = ex.userOrder.filter(id => id !== sid);
-        const sortDiv = btn.closest('.ws-sort');
-        if (sortDiv) {
-          sortDiv.innerHTML = this.renderSort(ex, false);
-        }
-        this.attachHandlers(worksheet, container, onQuestComplete);
-      });
-    });
+      }
+      sortDiv.innerHTML = this.renderSort(ex, false);
+    };
+    container.addEventListener('click', sortHandler);
 
     // Check Answers button
     const checkBtn = container.querySelector('#wsCheckBtn');
