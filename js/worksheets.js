@@ -904,6 +904,77 @@ window.WorksheetEngine = {
     });
   },
 
+  // ── SOUND EFFECTS (Web Audio API - no external files) ──
+  _audioCtx: null,
+
+  _ensureAudio() {
+    if (this._audioCtx) return true;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return false;
+      this._audioCtx = new Ctx();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  playPickup() {
+    if (!this._ensureAudio()) return;
+    const ctx = this._audioCtx;
+    const now = ctx.currentTime;
+    // Short ascending tone (like a quick pop/whoosh)
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(350, now);
+    osc.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  },
+
+  playDropSuccess() {
+    if (!this._ensureAudio()) return;
+    const ctx = this._audioCtx;
+    const now = ctx.currentTime;
+    // Rising chime: C5 → E5 → G5
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = now + i * 0.08;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+      osc.start(t);
+      osc.stop(t + 0.18);
+    });
+  },
+
+  playWrong() {
+    if (!this._ensureAudio()) return;
+    const ctx = this._audioCtx;
+    const now = ctx.currentTime;
+    // Low square-wave buzz
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(130, now);
+    osc.frequency.setValueAtTime(110, now + 0.1);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  },
+
   // ── DRAG HANDLER SYSTEM ──
   removeDragHandlers(container) {
     if (container._dragStart) container.removeEventListener('dragstart', container._dragStart);
@@ -935,8 +1006,9 @@ window.WorksheetEngine = {
       container._dragState.exId = parseInt(exDiv.dataset.id);
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', sourceId);
-      // Add dragging class
+      // Add dragging class + pickup sound
       item.classList.add('ws-dragging');
+      this.playPickup();
     };
     container.addEventListener('dragstart', container._dragStart);
 
@@ -998,6 +1070,7 @@ window.WorksheetEngine = {
       document.body.appendChild(clone);
       container._dragState.clone = clone;
       item.classList.add('ws-dragging');
+      this.playPickup();
     };
     container.addEventListener('touchstart', container._touchStart, { passive: false });
 
@@ -1040,7 +1113,10 @@ window.WorksheetEngine = {
 
   processDragDrop(container, worksheet, sourceId, targetEl) {
     const target = targetEl.closest('.ws-dragorder__item, .ws-dragmatch__target, .ws-dragzone__zone, .ws-dragzone__placed');
-    if (!target) return;
+    if (!target) {
+      this.playWrong();
+      return;
+    }
     const exDiv = target.closest('.ws-ex');
     if (!exDiv) return;
     const exId = parseInt(exDiv.dataset.id);
@@ -1101,6 +1177,8 @@ window.WorksheetEngine = {
       }
     }
 
+    // Success sound on valid drop
+    this.playDropSuccess();
     // Re-render just this exercise
     const renderFn = ex.type === 'dragorder' ? this.renderDragOrder :
                      ex.type === 'dragmatch' ? this.renderDragMatch :
