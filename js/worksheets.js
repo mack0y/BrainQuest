@@ -706,8 +706,12 @@ window.WorksheetEngine = {
       });
     });
 
-    // Match clicks — use event delegation on container to avoid handler duplication
-    const matchHandler = (e) => {
+    // Remove old delegation listeners to prevent accumulation
+    if (container._matchHandler) container.removeEventListener('click', container._matchHandler);
+    if (container._sortHandler) container.removeEventListener('click', container._sortHandler);
+
+    // Match clicks — event delegation on container
+    container._matchHandler = (e) => {
       const btn = e.target.closest('.ws-match__item');
       if (!btn) return;
       const exId = parseInt(btn.closest('.ws-ex')?.dataset?.id);
@@ -719,14 +723,12 @@ window.WorksheetEngine = {
 
       if (btn.dataset.side === 'left') {
         const pid = btn.dataset.mid;
-        // If already matched, unmatch it
         if (ex.userMatches[pid]) {
           delete ex.userMatches[pid];
           delete ex._selectedLeft;
           matchDiv.innerHTML = this.renderMatch(ex);
           return;
         }
-        // Select this left item
         ex._selectedLeft = pid;
         matchDiv.querySelectorAll('.ws-match__item--selected').forEach(el => el.classList.remove('ws-match__item--selected'));
         btn.classList.add('ws-match__item--selected');
@@ -734,18 +736,17 @@ window.WorksheetEngine = {
         if (!ex._selectedLeft) return;
         const leftPid = ex._selectedLeft;
         const rightPid = btn.dataset.mid;
-        // Check if this right item is already matched to another left item
         const alreadyMatched = Object.entries(ex.userMatches).find(([, v]) => v === rightPid);
-        if (alreadyMatched) return; // already matched, can't re-match
+        if (alreadyMatched) return;
         ex.userMatches[leftPid] = rightPid;
         delete ex._selectedLeft;
         matchDiv.innerHTML = this.renderMatch(ex);
       }
     };
-    container.addEventListener('click', matchHandler);
+    container.addEventListener('click', container._matchHandler);
 
-    // Sort clicks — use event delegation on container
-    const sortHandler = (e) => {
+    // Sort clicks — event delegation on container
+    container._sortHandler = (e) => {
       const btn = e.target.closest('.ws-sort__item');
       if (!btn) return;
       const exId = parseInt(btn.closest('.ws-ex')?.dataset?.id);
@@ -759,17 +760,15 @@ window.WorksheetEngine = {
       const isPlaced = btn.closest('.ws-sort__order');
 
       if (isPlaced) {
-        // Remove from order
         ex.userOrder = ex.userOrder.filter(id => id !== sid);
       } else {
-        // Add to order (prevent duplicates)
         if (!ex.userOrder.includes(sid)) {
           ex.userOrder.push(sid);
         }
       }
       sortDiv.innerHTML = this.renderSort(ex, false);
     };
-    container.addEventListener('click', sortHandler);
+    container.addEventListener('click', container._sortHandler);
 
     // Check Answers button
     const checkBtn = container.querySelector('#wsCheckBtn');
