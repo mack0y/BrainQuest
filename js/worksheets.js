@@ -619,7 +619,9 @@ const WorksheetEngine = {
           await completeWorksheet(profile.id, null, score, xpEarned);
         } catch (dbErr) {
           // FK constraint errors (23503) are expected — no matching worksheet row
-          if (dbErr?.code !== '23503') console.warn('Failed to save worksheet completion:', dbErr);
+          // 23502 = NOT NULL violation (worksheet_id is null for dynamic worksheets)
+          // 23503 = FK constraint violation (no matching worksheet row)
+          if (dbErr?.code !== '23502' && dbErr?.code !== '23503') console.warn('Failed to save worksheet completion:', dbErr);
         }
       }
     } catch (e) {
