@@ -235,7 +235,11 @@ ul { list-style: none; }
   display: none; flex: 1;
   animation: page-enter 0.35s ease;
 }
-.page--active { display: flex; flex-direction: column; }
+.page--active {
+  display: flex; flex-direction: column;
+  width: 100%; max-width: 100vw;
+  overflow-x: hidden;
+}
 @keyframes page-enter {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
