@@ -1,7 +1,7 @@
 # 🧠 BrainQuest — Project Memory
 
 > **A gamified learning platform for kids ages 4-11**
-> Built with Vanilla JS + Supabase (Phase 1 — Core MVP · Phase 2 — Interactive Worksheets)
+> Built with Vanilla JS + Supabase (Phase 1 — Core MVP · Phase 2 — Interactive Worksheets · Phase 3 — Quest-Worksheet Integration)
 
 ---
 
@@ -74,12 +74,12 @@ BrainQuest/
 │   │   ├── getLevelInfo (XP calc with per-level scaling)
 │   │   └── isLoggedIn check
 │   │
-│   ├── worksheets.js        # Worksheet engine (699 lines)
+│   ├── worksheets.js        # Worksheet engine (~720 lines)
 │   │   ├── window.WorksheetEngine — global object (uses window. for console/dev access)
 │   │   ├── generate(subject, grade, difficulty) — builds a full worksheet
 │   │   ├── Subject generators (genAlphabets, genNumbers, genMaths, genVocabulary, genColoring, genPuzzles)
 │   │   ├── renderWorksheet(worksheet) — renders interactive HTML
-│   │   ├── attachHandlers(worksheet, container) — binds clicks, inputs, check/retry
+│   │   ├── attachHandlers(worksheet, container, onQuestComplete) — binds clicks, inputs, check/retry; optional quest callback for Claim Reward button
 │   │   ├── saveCompletion — awards XP + persists to worksheet_completions table
 │   │   └── Helpers (shuffle, wordToEmoji, getAnimalWord, subjectColor)
 │   │
@@ -100,18 +100,19 @@ BrainQuest/
 │   │   ├── initHeroTilt (parallax on hero title)
 │   │   └── formatXp (1k+ formatting)
 │   │
-│   └── app.js              # Application controller (910 lines)
+│   └── app.js              # Application controller (~970 lines)
 │       ├── init (bootstrap Supabase, Auth, DOM refs, listeners)
-│       ├── Hash routing (handleRoute, navigate, render)
-│       ├── Navigation updates (XP badge, avatar, active links)
+│       ├── Hash routing (handleRoute, navigate, render; parses ?quest= query param for quest mode)
+│       ├── Navigation updates (XP badge, avatar, active links; Play nav route mapped)
 │       ├── renderHome — Landing page (static, in HTML)
 │       ├── renderAuth — Login/signup form with validation
 │       ├── renderDashboard — HUD + quest path + stats
 │       ├── renderQuests — Full quest map
-│       ├── renderWorksheet — Standalone generator in worksheet page container
-│       ├── renderGenerator — Subject/grade/difficulty picker
-│       ├── renderGeneratorForm(container, prefix) — Shared form renderer (DRY)
-│       ├── generateWorksheet / generateWorksheetFor(prefix) — Shared worksheet generation
+│       ├── renderWorksheet — Quest-aware worksheet page (loads pending quest data, enables quest mode)
+│       ├── renderGenerator — Subject/grade/difficulty picker (free-play mode via /play and /generator)
+│       ├── renderGeneratorForm(container, prefix, questData) — Shared form renderer (quest banner, pre-selected subject, scaled difficulty)
+│       ├── generateWorksheet / generateWorksheetFor(prefix) — Shared worksheet generation (passes quest callback in quest mode)
+│       ├── completePendingQuest — Completes quest after passing worksheet, awards XP, navigates to dashboard
 │       ├── renderLeaderboard — Top 10 players
 │       ├── renderBadges — Badge collection (locked/unlocked)
 │       ├── renderProfile — Name/avatar editor + stats + sign out
@@ -120,7 +121,7 @@ BrainQuest/
 └── MEMORY.md               # This file
 ```
 
-### Total: ~3,900 lines of code
+### Total: ~4,100 lines of code
 
 ---
 
@@ -168,12 +169,13 @@ BrainQuest/
 | `/signup` | Sign Up | ❌ |
 | `/dashboard` | Main dashboard (quest path + HUD) | ✅ |
 | `/quests` | Full quest map | ✅ |
-| `/worksheet` | Subject picker | ✅ |
+| `/worksheet` | Subject picker + quest-mode worksheet (use ?quest=ID query param) | ✅ |
 | `/worksheet/:id` | Specific worksheet | ✅ |
 | `/leaderboard` | Top 10 players | ✅ |
 | `/badges` | Badge collection | ✅ |
 | `/profile` | Profile settings | ✅ |
-| `/generator` | Worksheet generator | ✅ |
+| `/play` 🎮 | Free-play worksheet generator (renamed from /generator) | ✅ |
+| `/generator` | Legacy alias for /play (both routes work) | ✅ |
 
 ---
 
@@ -206,7 +208,9 @@ BrainQuest/
 - **Subject Cards**: Glassmorphism cards with colored top accents
 - **Badges**: Grid shelf with locked (grayscale) / unlocked states
 - **Leaderboard**: Rows with rank medals, avatar, XP, "you" highlight
-- **Generator**: Card with decorative gradient orbs, select dropdowns (shared between `#/generator` and `#/worksheet` routes)
+- **Play** 🎮: Free-play worksheet generator (renamed from Generator) with subject/grade/difficulty pickers
+- **Quest Banner**: Gradient banner shown in quest-mode worksheets showing quest icon, title, XP reward, and pass requirement
+- **Claim Reward Button**: Pulsing amber button that appears after passing a quest worksheet (≥60%), completes the quest and awards XP
 - **Worksheet**: Exercise container with numbered cards, clickable options, text inputs, hint tooltips, score/results overlay
 - **Toast**: Slide-in notification with icon + title + subtitle
 
@@ -416,11 +420,12 @@ Then open `http://localhost:3000` in your browser.
 
 ## 🐛 Known Issues & Notes
 
-- **Navigation requires login**: Protected routes (dashboard, quests, leaderboard, badges, profile, generator) show the home page when not logged in. This can appear as a "blank page with background" since the hero section has ambient effects but no content for returning users.
+- **Navigation requires login**: Protected routes (dashboard, quests, leaderboard, badges, profile, play) show the home page when not logged in.
 - **Service worker icons**: Uses inline SVG data URI in manifest — some platforms (iOS) may not support this for home screen icons. A real PNG asset would be more reliable.
 - **CDN dependency**: Requires `cdn.jsdelivr.net` to be accessible for Supabase JS library. Works offline via service worker cache after first load.
 - **No build step**: All code is vanilla JS — no minification, bundling, or transpilation. Good for a learning project, but could benefit from a build pipeline at scale.
-- **Quest completion redirect**: After completing a quest, the user is redirected to the dashboard. Future improvement: stay on current page with a local refresh.
+- **Quest-worksheet integration**: Quests now require completing a worksheet with ≥60% score to earn XP. Clicking "Learn →" on a quest node navigates to `#/worksheet?quest=ID`. The subject is pre-selected and locked in quest mode. After passing, a "Claim Reward" button appears. This replaces the old instant-complete behavior.
+- **Stale pendingQuest state**: Cleared on every route change via `handleRoute()` to prevent stale quest mode state.
 - **Worksheet completions**: Dynamically generated worksheets use `null` for `worksheet_id` in the `worksheet_completions` table (since no matching row exists in `worksheets`). The FK constraint error is handled gracefully — XP is still awarded.
 - **Worksheet variety**: Each generation creates new random exercises. However, the same word lists/patterns may repeat across sessions since they're drawn from fixed word banks.
 - **`const` vs `window` globals**: `WorksheetEngine` is declared as `window.WorksheetEngine` (not `const`) to allow browser console/DevTools access for testing. Other modules use `const` since they're accessed by reference from other scripts.
@@ -433,7 +438,8 @@ Then open `http://localhost:3000` in your browser.
 | `X: 'X-ray'` not an animal word | Changed to `X: 'Xerus'` (African ground squirrel) | `f40fe1b` |
 | `WorksheetEngine` not accessible from browser console (`const` doesn't create `window` property) | Changed `const WorksheetEngine` → `window.WorksheetEngine` | `a7e0a8a` |
 | FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) | `d7f74d3` |
-| Scroll reveal animations never triggered — `.reveal` elements stayed at `opacity: 0` because `initScrollReveal()` was called before async-rendered content existed in the DOM | Added `await` to 5 async page renderers in `renderPage()`; added defensive `UI.initScrollReveal()` calls after `renderQuestPath()`, `generateWorksheetFor()`, badge card appending, and worksheet re-renders in `attachHandlers()` | Latest |
+| Scroll reveal animations never triggered — `.reveal` elements stayed at `opacity: 0` because `initScrollReveal()` was called before async-rendered content existed in the DOM | Added `await` to 5 async page renderers in `renderPage()`; added defensive `UI.initScrollReveal()` calls after `renderQuestPath()`, `generateWorksheetFor()`, badge card appending, and worksheet re-renders in `attachHandlers()` | `9a1621e` |
+| Quests instantly completed on button click — no worksheet required, no actual learning | Replaced instant `Gamification.completeQuest()` with navigation to `#/worksheet?quest=ID`; added quest-mode worksheet rendering with pre-selected subject, quest banner, and "Claim Reward" button on ≥60% score; added `completePendingQuest()` method | `6720bd7` |
 
 ---
 
@@ -503,9 +509,12 @@ WorksheetEngine.generate(subject, grade, difficulty)
 
 | Route | What renders |
 |-------|-------------|
-| `#/generator` | Generator form → worksheet result in `#genResult` |
-| `#/worksheet` | Generator form → worksheet result in `#wsResult` |
-| Both | Uses shared `renderGeneratorForm(container, prefix)` and `generateWorksheetFor(prefix)` helpers |
+| `#/play` 🎮 | Free-play generator form → worksheet result in `#genResult` (renamed from `/generator`) |
+| `#/generator` | Legacy alias for `/play` (both routes map to the same page) |
+| `#/worksheet` | Free-play generator form → worksheet result in `#wsResult` |
+| `#/worksheet?quest=ID` | Quest-mode worksheet with pre-selected subject, quest banner, difficulty scaling, and Claim Reward flow |
+| Both free-play routes | Uses shared `renderGeneratorForm(container, prefix)` with no quest data |
+| Quest mode | Uses `renderGeneratorForm(container, prefix, questData)` with quest banner, locked subject dropdown, and `onQuestComplete` callback in `attachHandlers()` |
 
 ---
 
