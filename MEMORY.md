@@ -433,6 +433,7 @@ Then open `http://localhost:3000` in your browser.
 | `X: 'X-ray'` not an animal word | Changed to `X: 'Xerus'` (African ground squirrel) | `f40fe1b` |
 | `WorksheetEngine` not accessible from browser console (`const` doesn't create `window` property) | Changed `const WorksheetEngine` → `window.WorksheetEngine` | `a7e0a8a` |
 | FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) | `d7f74d3` |
+| Scroll reveal animations never triggered — `.reveal` elements stayed at `opacity: 0` because `initScrollReveal()` was called before async-rendered content existed in the DOM | Added `await` to 5 async page renderers in `renderPage()`; added defensive `UI.initScrollReveal()` calls after `renderQuestPath()`, `generateWorksheetFor()`, badge card appending, and worksheet re-renders in `attachHandlers()` | Latest |
 
 ---
 

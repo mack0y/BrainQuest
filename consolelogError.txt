@@ -1,18 +1,11 @@
-app.js:21 Supabase init failed: Error: supabaseUrl is required.
-    at supabase.js:20:31145
-    at new Ss (supabase.js:24:43522)
-    at Object.createClient (supabase.js:24:46815)
-    at initSupabase (db.js:17:32)
-    at Object.init (app.js:19:9)
-    at HTMLDocument.<anonymous> (app.js:877:57)
-init @ app.js:21Understand this warning
-auth.js:24 No existing session
-init @ auth.js:24Understand this warning
-db.js:62 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'auth')
-    at onAuthChange (db.js:62:20)
-    at Object.init (auth.js:28:25)
-    at async Object.init (app.js:28:5)Understand this error
-manifest.json:1 Manifest: property 'url' ignored, should be within scope of the manifest.Understand this warning
-manifest.json:1 Manifest: property 'url' of 'shortcut' not present.Understand this warning
-manifest.json:1 Manifest: property 'url' ignored, should be within scope of the manifest.Understand this warning
-manifest.json:1 Manifest: property 'url' of 'shortcut' not present.
+Based on my investigation, the reason you only see the background and no content is that many of your main content elements (with the class .reveal) have their opacity set to 0.
+
+These elements appear to be part of an entry animation system (likely handled by a JavaScript library like ScrollReveal or GSAP). Currently, 19 elements on the page, including the main dashboard headers and cards, are present in the DOM but remain invisible because the "reveal" animation hasn't triggered or completed.
+
+Key Observations:
+Opacity 0: The elements with the class .reveal (e.g., .s-head.reveal, .reward-card.reveal) have a computed opacity of 0.
+DOM Presence: The content is correctly rendered in the HTML and takes up physical space on the page (the app-container has a height of over 1800px), but it's simply not visible to the eye.
+Active Page: The #page-dashboard is correctly marked as the active page and is being displayed, but its children are the ones hidden by the opacity setting.
+Potential Solutions:
+Trigger Animations: If you are using an animation library, ensure that it is correctly initialized and that the scroll/load events are firing to trigger the "reveal".
+CSS Override (for testing): You can verify this by temporarily forcing these elements to be visible. Try adding this to your CSS:

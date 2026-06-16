@@ -582,6 +582,7 @@ window.WorksheetEngine = {
         // Re-render worksheet with results
         container.innerHTML = this.renderWorksheet(worksheet);
         this.attachHandlers(worksheet, container);
+        UI.initScrollReveal();
       });
     }
 
@@ -592,6 +593,7 @@ window.WorksheetEngine = {
         const newWs = this.generate(worksheet.subject, worksheet.grade, worksheet.difficulty);
         container.innerHTML = this.renderWorksheet(newWs);
         this.attachHandlers(newWs, container);
+        UI.initScrollReveal();
       });
     }
 

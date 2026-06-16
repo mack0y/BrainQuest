@@ -201,22 +201,22 @@ const App = {
         this.renderAuth();
         break;
       case 'page-dashboard':
-        this.renderDashboard();
+        await this.renderDashboard();
         break;
       case 'page-quests':
-        this.renderQuests();
+        await this.renderQuests();
         break;
       case 'page-worksheet':
         this.renderWorksheet();
         break;
       case 'page-leaderboard':
-        this.renderLeaderboard();
+        await this.renderLeaderboard();
         break;
       case 'page-badges':
-        this.renderBadges();
+        await this.renderBadges();
         break;
       case 'page-profile':
-        this.renderProfile();
+        await this.renderProfile();
         break;
       case 'page-generator':
         this.renderGenerator();
@@ -393,6 +393,9 @@ const App = {
         ${quests.map((quest, i) => this.questNodeHTML(quest, i, accentColors)).join('')}
       </div>
     `;
+
+    // Re-init scroll reveal for the newly added .reveal elements
+    UI.initScrollReveal();
 
     // Attach quest completion handlers
     container.querySelectorAll('.quest-node__btn--start').forEach(btn => {
@@ -662,6 +665,9 @@ const App = {
         `;
         shelf.appendChild(card);
       });
+
+      // Init scroll reveal for the dynamically added badge cards
+      UI.initScrollReveal();
     } catch (e) {
       const shelf = document.getElementById('badgeShelf');
       if (shelf) shelf.innerHTML = `<p style="color:var(--text-dim);text-align:center;grid-column:1/-1;padding:40px;">Badges not available.</p>`;
@@ -811,6 +817,8 @@ const App = {
     resultDiv.innerHTML = WorksheetEngine.renderWorksheet(ws);
     WorksheetEngine.attachHandlers(ws, resultDiv);
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Init scroll reveal for the new worksheet content
+    UI.initScrollReveal();
   },
 
   // ── HELPERS ──
