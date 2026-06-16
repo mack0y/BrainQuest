@@ -483,64 +483,69 @@ const App = {
   },
 
   // ═══════════════════════════════════════════
-  // PAGE: WORKSHEET
+  // PAGE: WORKSHEET (standalone — reuses generator form)
   // ═══════════════════════════════════════════
   async renderWorksheet() {
     const container = document.querySelector('#page-worksheet .worksheet-content');
     if (!container) return;
+    this.renderGeneratorForm(container, 'ws');
+  },
 
-    // Parse worksheet ID from route
-    const match = this.currentRoute.match(/\/worksheet(?:\/(\d+))?/);
-    const worksheetId = match ? parseInt(match[1]) : null;
+  // ═══════════════════════════════════════════
+  // PAGE: GENERATOR
+  // ═══════════════════════════════════════════
+  renderGenerator() {
+    const container = document.querySelector('#page-generator .generator-content');
+    if (!container) return;
+    this.renderGeneratorForm(container, 'gen');
+  },
 
-    if (!worksheetId) {
-      // Show subject picker
-      container.innerHTML = `
-        <div class="s-head reveal">
-          <div>
-            <div class="section__label">📝 Worksheets</div>
-            <div class="section__title">Choose a Subject</div>
-          </div>
-        </div>
-        <div class="subj-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
-          ${['🔤 Alphabets', '🔢 Numbers', '➕ Maths', '📖 Vocabulary', '🎨 Coloring', '🧩 Puzzles'].map(s => `
-            <div class="subj-card reveal" style="cursor:pointer;" onclick="App.navigate('/generator')">
-              <div class="subj-card__glow"></div>
-              <div class="subj-card__accent" style="background:var(--primary)"></div>
-              <div class="subj-card__icon">${s.split(' ')[0]}</div>
-              <div class="subj-card__name">${s.split(' ').slice(1).join(' ')}</div>
-              <div class="subj-card__count">Explore worksheets →</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-      return;
-    }
+  // ── SHARED GENERATOR FORM (used by both workspace & generator pages) ──
+  renderGeneratorForm(container, prefix) {
+    const label = prefix === 'gen' ? 'Craft Your Own Quest!' : 'Craft a Worksheet';
+    const desc = prefix === 'gen'
+      ? 'Choose your subject, grade, and difficulty. We\'ll forge a custom interactive worksheet — your personal brain challenge!'
+      : 'Choose your subject, grade, and difficulty. Then complete the worksheet to earn XP and level up!';
 
-    container.innerHTML = `<div class="auth-loading"><div class="spinner"></div></div>`;
-
-    try {
-      const worksheet = await getWorksheetById(worksheetId);
-      if (!worksheet) {
-        container.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">Worksheet not found.</p>`;
-        return;
-      }
-      container.innerHTML = `
-        <div class="s-head reveal">
-          <div>
-            <div class="section__label">${worksheet.subject} • ${worksheet.grade}</div>
-            <div class="section__title">${worksheet.title}</div>
-          </div>
+    container.innerHTML = `
+      <div class="s-head reveal">
+        <div>
+          <div class="section__label">✨ Forge a Worksheet</div>
+          <div class="section__title">${label}</div>
         </div>
-        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:40px;text-align:center;">
-          <p style="color:var(--text-dim);font-size:1.1rem;margin-bottom:20px;">✨ Worksheet content coming soon!</p>
-          <p style="color:var(--text-muted);margin-bottom:24px;">XP Reward: ${worksheet.xp_reward || 50} ⭐</p>
-          <button class="hero__btn-primary" onclick="UI.showToast('Worksheet Started!','Complete it to earn XP','📝')">📝 Start Worksheet</button>
+      </div>
+      <div class="generator-card reveal">
+        <div class="generator__text">
+          <p>${desc}</p>
         </div>
-      `;
-    } catch (e) {
-      container.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">Error loading worksheet.</p>`;
-    }
+        <div class="generator__controls">
+          <select class="generator__select" id="${prefix}Subject">
+            <option>🔤 Realm: Alphabets</option>
+            <option>🔢 Realm: Numbers</option>
+            <option>➕ Realm: Maths</option>
+            <option>📖 Realm: Vocabulary</option>
+            <option>🎨 Realm: Coloring</option>
+            <option>🧩 Realm: Puzzles</option>
+          </select>
+          <select class="generator__select" id="${prefix}Grade">
+            <option>👶 Grade: Preschool</option>
+            <option>🎒 Grade: Kindergarten</option>
+            <option>1️⃣ Grade: Grade 1</option>
+            <option>2️⃣ Grade: Grade 2</option>
+            <option>3️⃣ Grade: Grade 3</option>
+            <option>4️⃣ Grade: Grades 4–5</option>
+          </select>
+          <select class="generator__select" id="${prefix}Difficulty">
+            <option>⭐ Difficulty: Easy Quest</option>
+            <option>⭐⭐ Difficulty: Normal Quest</option>
+            <option>⭐⭐⭐ Difficulty: Epic Quest</option>
+            <option>💀 Difficulty: Legendary</option>
+          </select>
+          <button class="generator__btn" onclick="App.generateWorksheetFor('${prefix}')">⚔️ Forge Worksheet</button>
+        </div>
+      </div>
+      <div id="${prefix}Result" style="margin-top:24px;"></div>
+    `;
   },
 
   // ═══════════════════════════════════════════
@@ -791,58 +796,21 @@ const App = {
   },
 
   // ═══════════════════════════════════════════
-  // PAGE: GENERATOR
+  // GENERATE WORKSHEET (shared by both generator & worksheet pages)
   // ═══════════════════════════════════════════
-  renderGenerator() {
-    const container = document.querySelector('#page-generator .generator-content');
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="generator-card reveal">
-        <div class="generator__text">
-          <div class="section__label">✨ Forge a Worksheet</div>
-          <h2>Craft Your Own Quest!</h2>
-          <p>Choose your subject, grade, and difficulty. We'll forge a custom printable worksheet — your personal brain challenge.</p>
-        </div>
-        <div class="generator__controls">
-          <select class="generator__select" id="genSubject">
-            <option>🔤 Realm: Alphabets</option>
-            <option>🔢 Realm: Numbers</option>
-            <option>➕ Realm: Maths</option>
-            <option>📖 Realm: Vocabulary</option>
-            <option>🎨 Realm: Coloring</option>
-            <option>🧩 Realm: Puzzles</option>
-          </select>
-          <select class="generator__select" id="genGrade">
-            <option>👶 Grade: Preschool</option>
-            <option>🎒 Grade: Kindergarten</option>
-            <option>1️⃣ Grade: Grade 1</option>
-            <option>2️⃣ Grade: Grade 2</option>
-            <option>3️⃣ Grade: Grade 3</option>
-            <option>4️⃣ Grade: Grades 4–5</option>
-          </select>
-          <select class="generator__select" id="genDifficulty">
-            <option>⭐ Difficulty: Easy Quest</option>
-            <option>⭐⭐ Difficulty: Normal Quest</option>
-            <option>⭐⭐⭐ Difficulty: Epic Quest</option>
-            <option>💀 Difficulty: Legendary</option>
-          </select>
-          <button class="generator__btn" onclick="App.generateWorksheet()">⚔️ Forge Worksheet</button>
-        </div>
-      </div>
-      <div id="genResult" style="margin-top:24px;"></div>
-    `;
+  generateWorksheet() {
+    this.generateWorksheetFor('gen');
   },
 
-  generateWorksheet() {
-    const subject = document.getElementById('genSubject')?.value || 'Alphabets';
-    const grade = document.getElementById('genGrade')?.value || 'Kindergarten';
-    const difficulty = document.getElementById('genDifficulty')?.value || 'Easy';
-
-    const resultDiv = document.getElementById('genResult');
+  generateWorksheetFor(prefix) {
+    const subject = document.getElementById(prefix + 'Subject')?.value || 'Alphabets';
+    const grade = document.getElementById(prefix + 'Grade')?.value || 'Kindergarten';
+    const difficulty = document.getElementById(prefix + 'Difficulty')?.value || 'Easy';
+    const resultDiv = document.getElementById(prefix + 'Result');
     const ws = WorksheetEngine.generate(subject, grade, difficulty);
     resultDiv.innerHTML = WorksheetEngine.renderWorksheet(ws);
     WorksheetEngine.attachHandlers(ws, resultDiv);
+    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
 
   // ── HELPERS ──

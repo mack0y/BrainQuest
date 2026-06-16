@@ -328,13 +328,12 @@ const WorksheetEngine = {
     // Unscramble
     if (count > 3) {
       const word = words[Math.floor(Math.random() * words.length)];
-      const scrambled = this.shuffle(word.split('')).join('');
-      if (scrambled === word) {
-        // Swap first two letters to ensure it's scrambled
-        const arr = scrambled.split('');
-        [arr[0], arr[1]] = [arr[1], arr[0]];
-        return this.genVocabulary(count, grade, maxNum); // retry
+      let letters = word.split('');
+      // Ensure at least two letters are swapped differently
+      if (letters.length > 1) {
+        [letters[0], letters[letters.length - 1]] = [letters[letters.length - 1], letters[0]];
       }
+      const scrambled = letters.join('');
       exercises.push({
         type: 'input',
         question: `Unscramble the word: <span class="ws-big-letter">${scrambled}</span>`,
@@ -614,6 +613,15 @@ const WorksheetEngine = {
       const profile = Auth.currentProfile;
       // Award XP
       await Gamification.addXp(profile.id, xpEarned, 'worksheet');
+      // Save to Supabase worksheet_completions table (null worksheet_id for dynamically generated worksheets)
+      if (typeof completeWorksheet === 'function') {
+        try {
+          await completeWorksheet(profile.id, null, score, xpEarned);
+        } catch (dbErr) {
+          // FK constraint errors (23503) are expected — no matching worksheet row
+          if (dbErr?.code !== '23503') console.warn('Failed to save worksheet completion:', dbErr);
+        }
+      }
     } catch (e) {
       console.warn('Failed to save worksheet completion:', e);
     }
@@ -664,6 +672,8 @@ const WorksheetEngine = {
       M: 'Monkey', N: 'Newt', O: 'Owl', P: 'Penguin', Q: 'Quail', R: 'Rabbit',
       S: 'Snake', T: 'Turtle', U: 'Unicorn', V: 'Vulture', W: 'Whale', X: 'X-ray',
       Y: 'Yak', Z: 'Zebra'
+    };
+    return      X: 'Xerus', Y: 'Yak', Z: 'Zebra'
     };
     return map[letter.toUpperCase()] || 'Apple';
   },
