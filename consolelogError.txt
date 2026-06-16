@@ -1,11 +1,143 @@
-Based on my investigation, the reason you only see the background and no content is that many of your main content elements (with the class .reveal) have their opacity set to 0.
-
-These elements appear to be part of an entry animation system (likely handled by a JavaScript library like ScrollReveal or GSAP). Currently, 19 elements on the page, including the main dashboard headers and cards, are present in the DOM but remain invisible because the "reveal" animation hasn't triggered or completed.
-
-Key Observations:
-Opacity 0: The elements with the class .reveal (e.g., .s-head.reveal, .reward-card.reveal) have a computed opacity of 0.
-DOM Presence: The content is correctly rendered in the HTML and takes up physical space on the page (the app-container has a height of over 1800px), but it's simply not visible to the eye.
-Active Page: The #page-dashboard is correctly marked as the active page and is being displayed, but its children are the ones hidden by the opacity setting.
-Potential Solutions:
-Trigger Animations: If you are using an animation library, ensure that it is correctly initialized and that the scroll/load events are firing to trigger the "reveal".
-CSS Override (for testing): You can verify this by temporarily forcing these elements to be visible. Try adding this to your CSS:
+contentscript.js:14063 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14063
+u @ contentscript.js:14063
+a.addListener @ contentscript.js:14063
+Z.on @ contentscript.js:14063
+a.once @ contentscript.js:14063
+j.pipe @ contentscript.js:14082
+q @ contentscript.js:14083
+D @ contentscript.js:14083
+P @ contentscript.js:14083
+M @ contentscript.js:14063
+I @ contentscript.js:14063
+(anonymous) @ contentscript.js:14083
+call.__webpack_require__._LM_.__webpack_require__.__webpack_require__ @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083Understand this warning
+contentscript.js:14063 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14063
+u @ contentscript.js:14063
+a.addListener @ contentscript.js:14063
+Z.on @ contentscript.js:14063
+O @ contentscript.js:14082
+q @ contentscript.js:14083
+D @ contentscript.js:14083
+P @ contentscript.js:14083
+M @ contentscript.js:14063
+I @ contentscript.js:14063
+(anonymous) @ contentscript.js:14083
+call.__webpack_require__._LM_.__webpack_require__.__webpack_require__ @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083Understand this warning
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14082
+transform @ contentscript.js:14063
+s._write @ contentscript.js:14082
+I @ contentscript.js:14063
+L @ contentscript.js:14063
+O.write @ contentscript.js:14063
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14082
+transform @ contentscript.js:14063
+s._write @ contentscript.js:14082
+I @ contentscript.js:14063
+L @ contentscript.js:14063
+O.write @ contentscript.js:14063
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+contentscript.js:14083 ObjectMultiplex - malformed chunk without name "[object Object]"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+contentscript.js:14083 ObjectMultiplex - malformed chunk without name "[object Object]"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14063
+M @ contentscript.js:14082
+x @ contentscript.js:14082
+E.write @ contentscript.js:14082
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14082
+transform @ contentscript.js:14063
+s._write @ contentscript.js:14082
+I @ contentscript.js:14063
+L @ contentscript.js:14063
+O.write @ contentscript.js:14063
+d @ contentscript.js:14063
+a.emit @ contentscript.js:14063
+J @ contentscript.js:14063
+K @ contentscript.js:14063
+Z.push @ contentscript.js:14063
+(anonymous) @ contentscript.js:14063Understand this warning
+supabase.js:20  POST https://ictsojpigdczrxdshrmh.supabase.co/rest/v1/worksheet_completions?select=* 400 (Bad Request)
+(anonymous) @ supabase.js:20
+(anonymous) @ supabase.js:20
+await in (anonymous)
+(anonymous) @ supabase.js:1
+then @ supabase.js:1Understand this error
+supabase.js:20  POST https://ictsojpigdczrxdshrmh.supabase.co/rest/v1/worksheet_completions?select=* 400 (Bad Request)

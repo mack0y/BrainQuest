@@ -580,7 +580,7 @@ const App = {
             <option ${isQuestMode && questData.level > 4 ? 'selected' : ''}>⭐⭐⭐ Difficulty: Epic Quest</option>
             <option>💀 Difficulty: Legendary</option>
           </select>
-          <button class="generator__btn" onclick="App.generateWorksheetFor('${prefix}')">${isQuestMode ? '⚔️ Start Quest Worksheet' : '⚔️ Forge Worksheet'}</button>
+          <button class="generator__btn" onclick="App.generateWorksheetFor('${prefix}')">${isQuestMode ? '⚔️ Start Quest Worksheet' : '⚔️ Start'}</button>
         </div>
       </div>
       <div id="${prefix}Result" style="margin-top:24px;"></div>
@@ -597,14 +597,14 @@ const App = {
     container.innerHTML = `
       <div class="s-head reveal">
         <div>
-          <div class="section__label">🏅 Hall of Fame</div>
+          <div class="section__label">🏆 Top Players</div>
           <div class="section__title">Top Brain Questers</div>
         </div>
       </div>
       <div class="leaderboard reveal" id="lbTable">
         <div class="leaderboard__header">
           <span style="font-size:1.3rem">🏆</span>
-          <h3>Top Scholars</h3>
+          <h3>Top Players</h3>
         </div>
         <div class="auth-loading" id="lbLoading"><div class="spinner"></div></div>
       </div>
@@ -667,7 +667,7 @@ const App = {
     container.innerHTML = `
       <div class="s-head reveal">
         <div>
-          <div class="section__label">🏆 Achievements</div>
+          <div class="section__label">🏆 Badges</div>
           <div class="section__title">Your Badge Collection</div>
         </div>
       </div>
@@ -730,7 +730,7 @@ const App = {
     container.innerHTML = `
       <div class="s-head reveal">
         <div>
-          <div class="section__label">⚙️ Settings</div>
+          <div class="section__label">⚙️ My Stuff</div>
           <div class="section__title">Your Profile</div>
         </div>
       </div>
