@@ -840,19 +840,9 @@ const App = {
     const difficulty = document.getElementById('genDifficulty')?.value || 'Easy';
 
     const resultDiv = document.getElementById('genResult');
-    resultDiv.innerHTML = `
-      <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:40px;text-align:center;">
-        <div style="font-size:3rem;margin-bottom:16px;">⚔️</div>
-        <h3 style="font-family:'Fredoka One',sans-serif;font-size:1.3rem;color:var(--white);margin-bottom:8px;">Worksheet Forged!</h3>
-        <p style="color:var(--text-dim);margin-bottom:4px;">${subject} • ${grade} • ${difficulty}</p>
-        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;">Your custom quest is ready!</p>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-          <button class="hero__btn-primary" onclick="UI.showToast('+50 XP!','Complete this worksheet to earn XP','⭐')">📥 Download PDF</button>
-          <button class="hero__btn-secondary" onclick="UI.showToast('+50 XP!','Complete this worksheet to earn XP','⭐')">📝 Start Online</button>
-        </div>
-      </div>
-    `;
-    resultDiv.querySelector('.reveal')?.classList.add('reveal--visible');
+    const ws = WorksheetEngine.generate(subject, grade, difficulty);
+    resultDiv.innerHTML = WorksheetEngine.renderWorksheet(ws);
+    WorksheetEngine.attachHandlers(ws, resultDiv);
   },
 
   // ── HELPERS ──
