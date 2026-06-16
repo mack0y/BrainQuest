@@ -1054,7 +1054,7 @@ window.WorksheetEngine = {
       const order = [...ex.userOrder];
       const fromIdx = order.indexOf(sourceId);
       const toIdx = order.indexOf(dropId);
-      if (fromIdx === -1 || toIdx === -1) return;
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
       order.splice(fromIdx, 1);
       order.splice(toIdx, 0, sourceId);
       ex.userOrder = order;
@@ -1067,9 +1067,11 @@ window.WorksheetEngine = {
       Object.keys(ex.userMatches).forEach(key => {
         if (ex.userMatches[key] === sourceId) delete ex.userMatches[key];
       });
-      // If target already has a source, unplace it
+      // If target already has a source, swap: return old source to pool
       if (ex.userMatches[tgtId]) {
+        const oldSource = ex.userMatches[tgtId];
         delete ex.userMatches[tgtId];
+        ex.userMatches[tgtId] = sourceId;
         return;
       }
       ex.userMatches[tgtId] = sourceId;
