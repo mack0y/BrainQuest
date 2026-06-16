@@ -672,10 +672,8 @@ const WorksheetEngine = {
       A: 'Apple', B: 'Bear', C: 'Cat', D: 'Dog', E: 'Elephant', F: 'Fox',
       G: 'Goat', H: 'Horse', I: 'Iguana', J: 'Jaguar', K: 'Koala', L: 'Lion',
       M: 'Monkey', N: 'Newt', O: 'Owl', P: 'Penguin', Q: 'Quail', R: 'Rabbit',
-      S: 'Snake', T: 'Turtle', U: 'Unicorn', V: 'Vulture', W: 'Whale', X: 'X-ray',
+      S: 'Snake', T: 'Turtle', U: 'Unicorn', V: 'Vulture', W: 'Whale', X: 'Xerus',
       Y: 'Yak', Z: 'Zebra'
-    };
-    return      X: 'Xerus', Y: 'Yak', Z: 'Zebra'
     };
     return map[letter.toUpperCase()] || 'Apple';
   },
