@@ -536,7 +536,8 @@ window.WorksheetEngine = {
   },
 
   // ── ATTACH EVENT HANDLERS ──
-  attachHandlers(worksheet, container) {
+  // onQuestComplete(score, xpEarned, pct) — optional callback for quest mode
+  attachHandlers(worksheet, container, onQuestComplete = null) {
     // Option clicks
     container.querySelectorAll('.ws-opt').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -574,6 +575,8 @@ window.WorksheetEngine = {
         // Award XP
         const pct = Math.round((score / worksheet.exercises.length) * 100);
         const xpEarned = Math.round(worksheet.totalXP * (pct / 100));
+        const passed = pct >= 60;
+
         UI.showToast('🏆 Worksheet Complete!', `+${xpEarned} XP • ${score}/${worksheet.exercises.length} correct`, '🏆');
 
         // Save to Supabase if logged in
@@ -581,8 +584,24 @@ window.WorksheetEngine = {
 
         // Re-render worksheet with results
         container.innerHTML = this.renderWorksheet(worksheet);
-        this.attachHandlers(worksheet, container);
+        this.attachHandlers(worksheet, container, onQuestComplete);
         UI.initScrollReveal();
+
+        // In quest mode, if passed, show the Claim Reward button
+        if (onQuestComplete && passed) {
+          const actionsDiv = container.querySelector('.ws__actions');
+          if (actionsDiv) {
+            const claimBtn = document.createElement('button');
+            claimBtn.className = 'ws__claim-btn';
+            claimBtn.textContent = '⚔️ Claim Reward!';
+            claimBtn.addEventListener('click', () => {
+              claimBtn.disabled = true;
+              claimBtn.textContent = 'Claiming...';
+              onQuestComplete(score, xpEarned, pct);
+            });
+            actionsDiv.appendChild(claimBtn);
+          }
+        }
       });
     }
 
@@ -592,7 +611,7 @@ window.WorksheetEngine = {
       retryBtn.addEventListener('click', () => {
         const newWs = this.generate(worksheet.subject, worksheet.grade, worksheet.difficulty);
         container.innerHTML = this.renderWorksheet(newWs);
-        this.attachHandlers(newWs, container);
+        this.attachHandlers(newWs, container, onQuestComplete);
         UI.initScrollReveal();
       });
     }

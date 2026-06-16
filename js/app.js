@@ -9,6 +9,7 @@ const App = {
   navToggle: null,
   navXP: null,
   navAvatar: null,
+  pendingQuest: null,
 
   // ── INIT ──
   async init() {
@@ -61,7 +62,19 @@ const App = {
 
   // ── ROUTING ──
   handleRoute() {
-    const hash = window.location.hash.slice(1) || '/';
+    this.pendingQuest = null; // Clear stale quest state
+    let hash = window.location.hash.slice(1) || '/';
+    // Parse query params from hash (e.g., /worksheet?quest=1)
+    const qIndex = hash.indexOf('?');
+    if (qIndex !== -1) {
+      const queryStr = hash.slice(qIndex + 1);
+      hash = hash.slice(0, qIndex);
+      const params = new URLSearchParams(queryStr);
+      if (params.get('quest')) {
+        const questId = parseInt(params.get('quest'));
+        if (questId) this.pendingQuest = { questId };
+      }
+    }
     this.navigate(hash, false);
   },
 
@@ -111,6 +124,7 @@ const App = {
           pageId = 'page-profile';
           break;
         case route === '/generator':
+        case route === '/play':
           pageId = 'page-generator';
           break;
         default:
@@ -397,30 +411,12 @@ const App = {
     // Re-init scroll reveal for the newly added .reveal elements
     UI.initScrollReveal();
 
-    // Attach quest completion handlers
+    // Attach quest start handlers — navigate to worksheet with quest param
     container.querySelectorAll('.quest-node__btn--start').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const questId = parseInt(btn.dataset.questId);
-        const profile = Auth.currentProfile;
-        if (!profile || !questId) return;
-
-        btn.disabled = true;
-        btn.textContent = 'Completing...';
-
-        const result = await Gamification.completeQuest(profile.id, questId);
-
-        if (result) {
-          if (result.leveledUp) {
-            UI.celebrateLevelUp(result.newLevel);
-          } else {
-            UI.showToast('+XP Earned!', `+${result.xpGained} XP • Keep going!`, '⭐');
-          }
-          // Refresh everything via Auth.onLogin (includes App.render)
-          await Auth.onLogin();
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Try Again';
-        }
+        if (!questId) return;
+        App.navigate(`/worksheet?quest=${questId}`);
       });
     });
   },
@@ -449,7 +445,7 @@ const App = {
       nodeClass = 'quest-node--current';
       levelContent = quest.level;
       btnClass = 'quest-node__btn--start';
-      btnText = 'Complete Quest →';
+      btnText = `${quest.icon || '⚔️'} Learn →`;
       btnDisabled = '';
       badges = `<span class="badge badge--active">▶ Available</span>`;
     } else {
@@ -491,7 +487,20 @@ const App = {
   async renderWorksheet() {
     const container = document.querySelector('#page-worksheet .worksheet-content');
     if (!container) return;
-    this.renderGeneratorForm(container, 'ws');
+
+    // Check if we have a pending quest
+    let questData = null;
+    if (this.pendingQuest && this.pendingQuest.questId) {
+      try {
+        const quests = await getQuests();
+        questData = quests.find(q => q.id === this.pendingQuest.questId) || null;
+        if (!questData) this.pendingQuest = null;
+      } catch (e) {
+        this.pendingQuest = null;
+      }
+    }
+
+    this.renderGeneratorForm(container, 'ws', questData);
   },
 
   // ═══════════════════════════════════════════
@@ -503,17 +512,44 @@ const App = {
     this.renderGeneratorForm(container, 'gen');
   },
 
-  // ── SHARED GENERATOR FORM (used by both workspace & generator pages) ──
-  renderGeneratorForm(container, prefix) {
-    const label = prefix === 'gen' ? 'Craft Your Own Quest!' : 'Craft a Worksheet';
-    const desc = prefix === 'gen'
-      ? 'Choose your subject, grade, and difficulty. We\'ll forge a custom interactive worksheet — your personal brain challenge!'
-      : 'Choose your subject, grade, and difficulty. Then complete the worksheet to earn XP and level up!';
+  // ── SHARED GENERATOR FORM (used by both worksheet, generator, and quest-mode) ──
+  renderGeneratorForm(container, prefix, questData = null) {
+    const isQuestMode = !!questData;
+    const label = isQuestMode
+      ? `${questData.icon || '⚔️'} ${questData.title}`
+      : (prefix === 'gen' ? '🎮 Let\'s Play!' : 'Craft a Worksheet');
+    const desc = isQuestMode
+      ? `Complete this worksheet to earn ${questData.xp_reward} XP and unlock the next quest!`
+      : (prefix === 'gen'
+        ? 'Pick a subject, grade, and difficulty. Practice anything you want!'
+        : 'Pick a subject, grade, and difficulty. Then complete the worksheet to earn XP and level up!');
+
+    const subjectMap = {
+      'Alphabets': 0,
+      'Numbers': 1,
+      'Maths': 2,
+      'Vocabulary': 3,
+      'Coloring': 4,
+      'Puzzles': 5
+    };
+    const questSubjectIdx = isQuestMode && questData.subject !== 'General'
+      ? subjectMap[questData.subject]
+      : -1;
 
     container.innerHTML = `
+      ${isQuestMode ? `
+      <div class="ws__quest-banner reveal">
+        <span class="ws__quest-banner-icon">${questData.icon || '⚔️'}</span>
+        <div>
+          <div class="ws__quest-banner-title">⚔️ Quest: ${questData.title}</div>
+          <div style="font-size:0.78rem;color:var(--text-dim);">⭐ ${questData.xp_reward} XP reward · Pass with 60%+</div>
+        </div>
+        <span class="ws__quest-banner-sub">Level ${questData.level}</span>
+      </div>
+      ` : ''}
       <div class="s-head reveal">
         <div>
-          <div class="section__label">✨ Forge a Worksheet</div>
+          <div class="section__label">${isQuestMode ? `${questData.icon || '⚔️'} Quest Activity` : '✨ Pick Your Practice'}</div>
           <div class="section__title">${label}</div>
         </div>
       </div>
@@ -522,29 +558,29 @@ const App = {
           <p>${desc}</p>
         </div>
         <div class="generator__controls">
-          <select class="generator__select" id="${prefix}Subject">
-            <option>🔤 Realm: Alphabets</option>
-            <option>🔢 Realm: Numbers</option>
-            <option>➕ Realm: Maths</option>
-            <option>📖 Realm: Vocabulary</option>
-            <option>🎨 Realm: Coloring</option>
-            <option>🧩 Realm: Puzzles</option>
+          <select class="generator__select" id="${prefix}Subject" ${isQuestMode && questSubjectIdx >= 0 ? 'disabled' : ''}>
+            <option ${questSubjectIdx === 0 ? 'selected' : ''}>🔤 Realm: Alphabets</option>
+            <option ${questSubjectIdx === 1 ? 'selected' : ''}>🔢 Realm: Numbers</option>
+            <option ${questSubjectIdx === 2 ? 'selected' : ''}>➕ Realm: Maths</option>
+            <option ${questSubjectIdx === 3 ? 'selected' : ''}>📖 Realm: Vocabulary</option>
+            <option ${questSubjectIdx === 4 ? 'selected' : ''}>🎨 Realm: Coloring</option>
+            <option ${questSubjectIdx === 5 ? 'selected' : ''}>🧩 Realm: Puzzles</option>
           </select>
           <select class="generator__select" id="${prefix}Grade">
-            <option>👶 Grade: Preschool</option>
-            <option>🎒 Grade: Kindergarten</option>
+            <option ${isQuestMode && questData.level <= 1 ? 'selected' : ''}>👶 Grade: Preschool</option>
+            <option ${!isQuestMode || (questData.level > 1 && questData.level <= 3) ? 'selected' : ''}>🎒 Grade: Kindergarten</option>
             <option>1️⃣ Grade: Grade 1</option>
             <option>2️⃣ Grade: Grade 2</option>
             <option>3️⃣ Grade: Grade 3</option>
             <option>4️⃣ Grade: Grades 4–5</option>
           </select>
           <select class="generator__select" id="${prefix}Difficulty">
-            <option>⭐ Difficulty: Easy Quest</option>
-            <option>⭐⭐ Difficulty: Normal Quest</option>
-            <option>⭐⭐⭐ Difficulty: Epic Quest</option>
+            <option ${!isQuestMode || questData.level <= 2 ? 'selected' : ''}>⭐ Difficulty: Easy Quest</option>
+            <option ${isQuestMode && questData.level > 2 && questData.level <= 4 ? 'selected' : ''}>⭐⭐ Difficulty: Normal Quest</option>
+            <option ${isQuestMode && questData.level > 4 ? 'selected' : ''}>⭐⭐⭐ Difficulty: Epic Quest</option>
             <option>💀 Difficulty: Legendary</option>
           </select>
-          <button class="generator__btn" onclick="App.generateWorksheetFor('${prefix}')">⚔️ Forge Worksheet</button>
+          <button class="generator__btn" onclick="App.generateWorksheetFor('${prefix}')">${isQuestMode ? '⚔️ Start Quest Worksheet' : '⚔️ Forge Worksheet'}</button>
         </div>
       </div>
       <div id="${prefix}Result" style="margin-top:24px;"></div>
@@ -815,10 +851,39 @@ const App = {
     const resultDiv = document.getElementById(prefix + 'Result');
     const ws = WorksheetEngine.generate(subject, grade, difficulty);
     resultDiv.innerHTML = WorksheetEngine.renderWorksheet(ws);
-    WorksheetEngine.attachHandlers(ws, resultDiv);
+
+    // Pass quest callback if in quest mode
+    const questData = this.pendingQuest;
+    if (questData && questData.questId) {
+      WorksheetEngine.attachHandlers(ws, resultDiv, async (score, xpEarned, pct) => {
+        await this.completePendingQuest(questData.questId, score, xpEarned, pct);
+      });
+    } else {
+      WorksheetEngine.attachHandlers(ws, resultDiv);
+    }
+
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     // Init scroll reveal for the new worksheet content
     UI.initScrollReveal();
+  },
+
+  // Complete a pending quest after passing a worksheet
+  async completePendingQuest(questId, score, xpEarned, pct) {
+    const profile = Auth.currentProfile;
+    if (!profile || !questId) return;
+
+    const result = await Gamification.completeQuest(profile.id, questId);
+    this.pendingQuest = null;
+
+    if (result) {
+      if (result.leveledUp) {
+        UI.celebrateLevelUp(result.newLevel);
+      } else {
+        UI.showToast('+XP Earned!', `+${result.xpGained} XP • Quest complete!`, '⭐');
+      }
+      // Refresh profile and navigate back to dashboard
+      await Auth.onLogin();
+    }
   },
 
   // ── HELPERS ──
