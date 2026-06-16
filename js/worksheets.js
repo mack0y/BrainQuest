@@ -75,18 +75,28 @@ window.WorksheetEngine = {
     const animals = { A: '🐊', B: '🐻', C: '🐱', D: '🐶', E: '🐘', F: '🦊', G: '🐸', H: '🐴', I: '🦎', J: '🦘', K: '🕊️', L: '🦁', M: '🐭', N: '🐮', O: '🦉', P: '🐧', Q: '🦆', R: '🐰', S: '🐍', T: '🐢', U: '🦄', V: '🦜', W: '🐋', X: '🦀', Y: '🐲', Z: '🦓' };
 
     // Letter recognition
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const letter = letters[Math.floor(Math.random() * 26)];
-      const options = this.shuffle([letter, ...this.getRandomLetters(letter, 3)]);
-      exercises.push({
-        type: 'choose',
-        question: `Which letter is this? <span class="ws-big-letter">${letter}</span>`,
-        image: animals[letter] || '🔤',
-        options: options.map(l => ({ value: l, label: l })),
-        answer: letter,
-        xp: 15
-      });
-    }
+    const letter = letters[Math.floor(Math.random() * 26)];
+    const options = this.shuffle([letter, ...this.getRandomLetters(letter, 3)]);
+    exercises.push({
+      type: 'choose',
+      question: `Which letter is this? <span class="ws-big-letter">${letter}</span>`,
+      image: animals[letter] || '🔤',
+      options: options.map(l => ({ value: l, label: l })),
+      answer: letter,
+      xp: 15
+    });
+
+    // Match letter → animal
+    const matchLetters = this.shuffle(letters).slice(0, 3);
+    const matchPairs = matchLetters.map(l => ({
+      id: `alp_${l}`,
+      left: l,
+      right: animals[l] || '🔤'
+    }));
+    exercises.push(this.genMatchExercise(
+      matchPairs,
+      'Match each letter to its animal friend! 🐾'
+    ));
 
     // Uppercase → lowercase matching
     if (count > 2) {
@@ -100,6 +110,21 @@ window.WorksheetEngine = {
         answer: lower,
         xp: 15
       });
+    }
+
+    // Sort letters in ABC order
+    if (count > 4) {
+      const sortStart = Math.floor(Math.random() * 22);
+      const sortLetters = letters.slice(sortStart, sortStart + 4).split('');
+      const sortItems = sortLetters.map((l, i) => ({
+        id: `sort_${l}`,
+        label: l,
+        correctOrder: i
+      }));
+      exercises.push(this.genSortExercise(
+        sortItems,
+        'Put these letters in ABC order! 🔤'
+      ));
     }
 
     // Which word starts with...
@@ -140,20 +165,31 @@ window.WorksheetEngine = {
     const exercises = [];
 
     // Count objects
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const num = Math.floor(Math.random() * maxNum) + 1;
-      const emojis = ['🌟', '🍎', '⭐', '🌈', '🎈', '🐟', '🌸', '🍪'].sort(() => Math.random() - 0.5);
-      const emoji = emojis[0];
-      const options = this.shuffle([num, ...this.getRandomNumbers(num, 3, maxNum)]);
-      exercises.push({
-        type: 'choose',
-        question: `How many ${emoji} are there?`,
-        image: emoji.repeat(num),
-        options: options.map(n => ({ value: n.toString(), label: n.toString() })),
-        answer: num.toString(),
-        xp: 15
-      });
-    }
+    const num = Math.floor(Math.random() * maxNum) + 1;
+    const emojis = ['🌟', '🍎', '⭐', '🌈', '🎈', '🐟', '🌸', '🍪'].sort(() => Math.random() - 0.5);
+    const emoji = emojis[0];
+    const options = this.shuffle([num, ...this.getRandomNumbers(num, 3, maxNum)]);
+    exercises.push({
+      type: 'choose',
+      question: `How many ${emoji} are there?`,
+      image: emoji.repeat(num),
+      options: options.map(n => ({ value: n.toString(), label: n.toString() })),
+      answer: num.toString(),
+      xp: 15
+    });
+
+    // Match number → emoji count
+    const countNums = [1, 2, 3];
+    const countEmojis = ['🌟', '🍎', '⭐'];
+    const matchNumPairs = countNums.map(n => ({
+      id: `num_${n}`,
+      left: countEmojis[countNums.indexOf(n)].repeat(n),
+      right: n.toString()
+    }));
+    exercises.push(this.genMatchExercise(
+      matchNumPairs,
+      'Match the stars to the right number! ⭐'
+    ));
 
     // Number sequencing
     if (count > 2) {
@@ -186,21 +222,19 @@ window.WorksheetEngine = {
       });
     }
 
-    // Greater than / less than
+    // Sort numbers smallest → biggest
     if (count > 4) {
-      const a = Math.floor(Math.random() * maxNum) + 1;
-      const b = Math.floor(Math.random() * maxNum) + 1;
-      exercises.push({
-        type: 'choose',
-        question: `Which is bigger? <span class="ws-big-letter">${a}</span> or <span class="ws-big-letter">${b}</span>?`,
-        options: [
-          { value: 'a', label: `${a}` },
-          { value: 'b', label: `${b}` },
-          { value: 'equal', label: 'Equal' }
-        ],
-        answer: a > b ? 'a' : b > a ? 'b' : 'equal',
-        xp: 20
-      });
+      const sortNums = this.shuffle([1,2,3,4]).slice(0, 4);
+      const sorted = [...sortNums].sort((a,b) => a - b);
+      const sortItems = sortNums.map((n, i) => ({
+        id: `nsort_${n}`,
+        label: n.toString(),
+        correctOrder: sorted.indexOf(n)
+      }));
+      exercises.push(this.genSortExercise(
+        sortItems,
+        'Put these numbers in order from smallest to biggest! 🔢'
+      ));
     }
 
     return exercises.slice(0, count);
@@ -212,19 +246,31 @@ window.WorksheetEngine = {
     const maxOp = grade < 2 ? 10 : maxNum;
 
     // Addition
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const a = Math.floor(Math.random() * maxOp) + 1;
-      const b = Math.floor(Math.random() * (maxOp - a)) + 1;
-      const correct = a + b;
-      const options = this.shuffle([correct, ...this.getRandomNumbers(correct, 3, maxOp * 2)]);
-      exercises.push({
-        type: 'choose',
-        question: `<span class="ws-big-letter">${a} + ${b} = ?</span>`,
-        options: options.map(n => ({ value: n.toString(), label: n.toString() })),
-        answer: correct.toString(),
-        xp: 20
-      });
-    }
+    const a = Math.floor(Math.random() * maxOp) + 1;
+    const b = Math.floor(Math.random() * (maxOp - a)) + 1;
+    const correct = a + b;
+    const options = this.shuffle([correct, ...this.getRandomNumbers(correct, 3, maxOp * 2)]);
+    exercises.push({
+      type: 'choose',
+      question: `<span class="ws-big-letter">${a} + ${b} = ?</span>`,
+      options: options.map(n => ({ value: n.toString(), label: n.toString() })),
+      answer: correct.toString(),
+      xp: 20
+    });
+
+    // Match equation → answer
+    const eqPairs = [
+      { a: 1, b: 1 }, { a: 2, b: 1 }, { a: 2, b: 2 }
+    ];
+    const matchEqPairs = eqPairs.map((eq, i) => ({
+      id: `eq_${i}`,
+      left: `${eq.a} + ${eq.b}`,
+      right: `${eq.a + eq.b}`
+    }));
+    exercises.push(this.genMatchExercise(
+      matchEqPairs,
+      'Match each math problem to its answer! ➕'
+    ));
 
     // Subtraction
     if (count > 2) {
@@ -324,6 +370,18 @@ window.WorksheetEngine = {
       });
     }
 
+    // Match word → emoji
+    const vocabMatchWords = this.shuffle(words).slice(0, 3);
+    const vocabPairs = vocabMatchWords.map(w => ({
+      id: `voc_${w}`,
+      left: this.wordToEmoji(w) || '📝',
+      right: w
+    }));
+    exercises.push(this.genMatchExercise(
+      vocabPairs,
+      'Match each picture to its word! 📖'
+    ));
+
     // Unscramble
     if (count > 3) {
       const word = words[Math.floor(Math.random() * words.length)];
@@ -359,18 +417,32 @@ window.WorksheetEngine = {
     ];
 
     // Color recognition
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const wrongColors = this.shuffle(colors.filter(c => c.name !== color.name)).slice(0, 3);
-      const options = this.shuffle([color, ...wrongColors]);
-      exercises.push({
-        type: 'choose',
-        question: `What color is this? ${color.emoji}`,
-        options: options.map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
-        answer: color.name,
-        xp: 10
-      });
-    }
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const wrongColors = this.shuffle(colors.filter(c => c.name !== color.name)).slice(0, 3);
+    const options = this.shuffle([color, ...wrongColors]);
+    exercises.push({
+      type: 'choose',
+      question: `What color is this? ${color.emoji}`,
+      options: options.map(c => ({ value: c.name, label: `${c.emoji} ${c.name}` })),
+      answer: color.name,
+      xp: 10
+    });
+
+    // Match color → object
+    const colorItems = [
+      { name: 'red', obj: '🍎' },
+      { name: 'yellow', obj: '⭐' },
+      { name: 'green', obj: '🍀' }
+    ];
+    const colorPairs = colorItems.map(c => ({
+      id: `col_${c.name}`,
+      left: c.obj,
+      right: c.name
+    }));
+    exercises.push(this.genMatchExercise(
+      colorPairs,
+      'Match each object to its color! 🎨'
+    ));
 
     // Color by instruction
     if (count > 2) {
@@ -396,24 +468,34 @@ window.WorksheetEngine = {
     const exercises = [];
 
     // Pattern completion
-    for (let i = 0; i < Math.min(2, count); i++) {
-      const emojis = ['🔵', '🟢', '🟡', '🟣', '🔴', '🟠'];
-      const used = this.shuffle(emojis).slice(0, 3);
-      const patternLen = Math.floor(Math.random() * 2) + 2;
-      const pattern = [];
-      for (let p = 0; p < patternLen; p++) pattern.push(used[p % used.length]);
-      const next = used[patternLen % used.length];
-      const display = pattern.join(' ') + ' → ___';
-      const wrong = this.shuffle(emojis.filter(e => e !== next)).slice(0, 3);
-      const options = this.shuffle([next, ...wrong]);
-      exercises.push({
-        type: 'choose',
-        question: `What comes next? <span class="ws-big-letter">${display}</span>`,
-        options: options.map(e => ({ value: e, label: e })),
-        answer: next,
-        xp: 20
-      });
-    }
+    const emojis = ['🔵', '🟢', '🟡', '🟣', '🔴', '🟠'];
+    const used = this.shuffle(emojis).slice(0, 3);
+    const patternLen = Math.floor(Math.random() * 2) + 2;
+    const pattern = [];
+    for (let p = 0; p < patternLen; p++) pattern.push(used[p % used.length]);
+    const next = used[patternLen % used.length];
+    const display = pattern.join(' ') + ' → ___';
+    const wrong = this.shuffle(emojis.filter(e => e !== next)).slice(0, 3);
+    const options = this.shuffle([next, ...wrong]);
+    exercises.push({
+      type: 'choose',
+      question: `What comes next? <span class="ws-big-letter">${display}</span>`,
+      options: options.map(e => ({ value: e, label: e })),
+      answer: next,
+      xp: 20
+    });
+
+    // Sort pattern sequence
+    const sortEmojis = ['🔵', '🟢', '🟡', '🔴'];
+    const sortPatternItems = sortEmojis.map((e, i) => ({
+      id: `pats_${i}`,
+      label: e,
+      correctOrder: i
+    }));
+    exercises.push(this.genSortExercise(
+      sortPatternItems,
+      'Put these colors in rainbow order! 🌈'
+    ));
 
     // Odd one out
     if (count > 2) {
@@ -510,6 +592,84 @@ window.WorksheetEngine = {
         } else {
           html += `<input class="ws-ex__input" type="text" data-id="${ex.id}" placeholder="Type your answer..." autocomplete="off" />`;
         }
+      } else if (ex.type === 'match') {
+        // Matching columns
+        const matchState = ex.userMatches || {};
+        html += `<div class="ws-match" data-id="${ex.id}">`;
+        html += `<div class="ws-match__col ws-match__col--left">`;
+        ex.leftOrder.forEach(pid => {
+          const pair = ex.pairs.find(p => p.id === pid);
+          if (!pair) return;
+          const matchedTo = matchState[pid];
+          let cls = '';
+          if (isResults) {
+            cls = matchedTo === pid ? ' ws-match__item--correct' : ' ws-match__item--wrong';
+          } else if (matchedTo) {
+            cls = ' ws-match__item--matched';
+          }
+          if (!isResults && ex._selectedLeft === pid) cls += ' ws-match__item--selected';
+          html += `<button class="ws-match__item${cls}" data-mid="${pid}" data-side="left">${pair.left}</button>`;
+        });
+        html += `</div>`;
+        html += `<div class="ws-match__col ws-match__col--right">`;
+        ex.rightOrder.forEach(pid => {
+          const pair = ex.pairs.find(p => p.id === pid);
+          if (!pair) return;
+          const matchedBy = Object.entries(matchState).find(([,v]) => v === pid);
+          let cls = '';
+          if (isResults) {
+            const correctMatch = matchedBy && matchedBy[0] === pid;
+            cls = correctMatch ? ' ws-match__item--correct' : ' ws-match__item--wrong';
+          } else if (matchedBy) {
+            cls = ' ws-match__item--matched';
+          }
+          html += `<button class="ws-match__item${cls}" data-mid="${pid}" data-side="right">${pair.right}</button>`;
+        });
+        html += `</div></div>`;
+        // Feedback for wrong matches
+        if (isResults) {
+          ex.pairs.forEach(pair => {
+            if (matchState[pair.id] !== pair.id) {
+              html += `<div class="ws-ex__feedback">✓ Correct: ${pair.left} → ${pair.right}</div>`;
+            }
+          });
+        }
+      } else if (ex.type === 'sort') {
+        // Click-to-order sort
+        const sortState = ex.userOrder || [];
+        html += `<div class="ws-sort" data-id="${ex.id}">`;
+        if (!isResults) {
+          html += `<div class="ws-sort__pool">`;
+          ex.displayOrder.forEach(itemId => {
+            const item = ex.items.find(i => i.id === itemId);
+            if (!item || sortState.includes(itemId)) return;
+            html += `<button class="ws-sort__item" data-sid="${item.id}">${item.label}</button>`;
+          });
+          html += `</div>`;
+          html += `<div class="ws-sort__order">`;
+          sortState.forEach((itemId, pos) => {
+            const item = ex.items.find(i => i.id === itemId);
+            if (!item) return;
+            html += `<button class="ws-sort__item ws-sort__item--placed" data-sid="${item.id}" data-pos="${pos}"><span class="ws-sort__pos">${pos + 1}</span> ${item.label}</button>`;
+          });
+          if (sortState.length < ex.items.length) {
+            html += `<div class="ws-sort__hint">👆 Tap the items above to put them in order!</div>`;
+          }
+          html += `</div>`;
+        } else {
+          // Results mode
+          html += `<div class="ws-sort__results">`;
+          sortState.forEach((itemId, pos) => {
+            const item = ex.items.find(i => i.id === itemId);
+            if (!item) return;
+            const correct = item.correctOrder === pos;
+            html += `<span class="ws-sort__result-item ${correct ? 'ws-sort__result-item--correct' : 'ws-sort__result-item--wrong'}">
+              <span class="ws-sort__pos">${pos + 1}</span> ${item.label}
+              ${!correct ? `<span class="ws-sort__result-correct">→ should be #${item.correctOrder + 1}</span>` : ''}
+            </span>`;
+          });
+          html += `</div>`;
+        }
       }
 
       html += feedback;
@@ -541,9 +701,83 @@ window.WorksheetEngine = {
     container.querySelectorAll('.ws-opt').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = parseInt(btn.dataset.id);
-        // Deselect siblings
         container.querySelectorAll(`.ws-opt[data-id="${id}"]`).forEach(b => b.classList.remove('ws-opt--selected'));
         btn.classList.add('ws-opt--selected');
+      });
+    });
+
+    // Match clicks
+    container.querySelectorAll('.ws-match__item[data-side="left"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
+        const ex = worksheet.exercises.find(e => e.id === exId);
+        if (!ex) return;
+        const pid = btn.dataset.mid;
+        // If already matched, unmatch
+        if (ex.userMatches[pid]) {
+          const rightPid = ex.userMatches[pid];
+          delete ex.userMatches[pid];
+          delete ex._selectedLeft;
+          container.querySelector('.ws-match').innerHTML = this.renderMatch(ex);
+          this.attachHandlers(worksheet, container, onQuestComplete);
+          return;
+        }
+        ex._selectedLeft = pid;
+        // Update UI
+        container.querySelectorAll('.ws-match__item--selected').forEach(el => el.classList.remove('ws-match__item--selected'));
+        btn.classList.add('ws-match__item--selected');
+      });
+    });
+
+    container.querySelectorAll('.ws-match__item[data-side="right"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
+        const ex = worksheet.exercises.find(e => e.id === exId);
+        if (!ex || !ex._selectedLeft) return;
+        const leftPid = ex._selectedLeft;
+        const rightPid = btn.dataset.mid;
+        ex.userMatches[leftPid] = rightPid;
+        delete ex._selectedLeft;
+        // Re-render just the match part
+        const matchDiv = btn.closest('.ws-match');
+        if (matchDiv) {
+          matchDiv.innerHTML = this.renderMatch(ex);
+        }
+        this.attachHandlers(worksheet, container, onQuestComplete);
+      });
+    });
+
+    // Sort clicks — add to order
+    container.querySelectorAll('.ws-sort__pool .ws-sort__item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
+        const ex = worksheet.exercises.find(e => e.id === exId);
+        if (!ex) return;
+        const sid = btn.dataset.sid;
+        if (!ex.userOrder.includes(sid)) {
+          ex.userOrder.push(sid);
+        }
+        const sortDiv = btn.closest('.ws-sort');
+        if (sortDiv) {
+          sortDiv.innerHTML = this.renderSort(ex, false);
+        }
+        this.attachHandlers(worksheet, container, onQuestComplete);
+      });
+    });
+
+    // Sort clicks — remove from order
+    container.querySelectorAll('.ws-sort__order .ws-sort__item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const exId = parseInt(btn.closest('.ws-ex').dataset.id);
+        const ex = worksheet.exercises.find(e => e.id === exId);
+        if (!ex) return;
+        const sid = btn.dataset.sid;
+        ex.userOrder = ex.userOrder.filter(id => id !== sid);
+        const sortDiv = btn.closest('.ws-sort');
+        if (sortDiv) {
+          sortDiv.innerHTML = this.renderSort(ex, false);
+        }
+        this.attachHandlers(worksheet, container, onQuestComplete);
       });
     });
 
@@ -557,6 +791,25 @@ window.WorksheetEngine = {
           if (ex.type === 'choose') {
             const selected = container.querySelector(`.ws-opt--selected[data-id="${ex.id}"]`);
             userAnswer = selected ? selected.dataset.value : '';
+          } else if (ex.type === 'input') {
+            const input = container.querySelector(`.ws-ex__input[data-id="${ex.id}"]`);
+            userAnswer = input ? input.value.trim().toLowerCase() : '';
+          } else if (ex.type === 'sort') {
+            userAnswer = JSON.stringify(ex.userOrder || []);
+            const sortItems = ex.items || [];
+            let allCorrect = true;
+            (ex.userOrder || []).forEach((itemId, pos) => {
+              const item = sortItems.find(i => i.id === itemId);
+              if (item && item.correctOrder !== pos) allCorrect = false;
+            });
+            if (allCorrect && (ex.userOrder || []).length === sortItems.length) score++;
+          } else if (ex.type === 'match') {
+            userAnswer = JSON.stringify(ex.userMatches || {});
+            let allMatched = true;
+            (ex.pairs || []).forEach(pair => {
+              if (ex.userMatches[pair.id] !== pair.id) allMatched = false;
+            });
+            if (allMatched && Object.keys(ex.userMatches || {}).length === (ex.pairs || []).length) score++;
           } else {
             const input = container.querySelector(`.ws-ex__input[data-id="${ex.id}"]`);
             userAnswer = input ? input.value.trim().toLowerCase() : '';
@@ -564,9 +817,10 @@ window.WorksheetEngine = {
           ex.userAnswer = userAnswer;
           if (ex.type === 'input') {
             if (userAnswer === ex.accept || userAnswer === ex.answer) score++;
-          } else if (userAnswer === ex.answer) {
-            score++;
+          } else if (ex.type === 'choose') {
+            if (userAnswer === ex.answer) score++;
           }
+          // match and sort types are already scored above with allCorrect/allMatched
         });
         worksheet.score = score;
         worksheet.completed = true;
@@ -702,6 +956,84 @@ window.WorksheetEngine = {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(l => l !== excludeLetter.toUpperCase());
     const picked = this.shuffle(letters).slice(0, count);
     return picked.map(l => this.getAnimalWord(l));
+  },
+
+  // ── NEW EXERCISE TYPE HELPERS ──
+  genMatchExercise(pairs, question, xp = 25) {
+    // pairs: [{ id, left, right }, ...]
+    const leftOrder = this.shuffle(pairs.map(p => p.id));
+    const rightOrder = this.shuffle(pairs.map(p => p.id));
+    return {
+      type: 'match',
+      question,
+      pairs,
+      leftOrder,
+      rightOrder,
+      userMatches: {},
+      xp
+    };
+  },
+
+  genSortExercise(items, question, xp = 25) {
+    // items: [{ id, label, correctOrder }, ...] — correctOrder = 0,1,2...
+    const displayOrder = this.shuffle(items.map(i => i.id));
+    return {
+      type: 'sort',
+      question,
+      items,
+      displayOrder,
+      userOrder: [],
+      xp
+    };
+  },
+
+  // ── RENDER MATCH (helper, for re-rendering after clicks) ──
+  renderMatch(ex) {
+    const matchState = ex.userMatches || {};
+    let html = `<div class="ws-match__col ws-match__col--left">`;
+    ex.leftOrder.forEach(pid => {
+      const pair = ex.pairs.find(p => p.id === pid);
+      if (!pair) return;
+      const matchedTo = matchState[pid];
+      let cls = matchedTo ? ' ws-match__item--matched' : '';
+      if (ex._selectedLeft === pid) cls += ' ws-match__item--selected';
+      html += `<button class="ws-match__item${cls}" data-mid="${pid}" data-side="left">${pair.left}</button>`;
+    });
+    html += `</div><div class="ws-match__col ws-match__col--right">`;
+    ex.rightOrder.forEach(pid => {
+      const pair = ex.pairs.find(p => p.id === pid);
+      if (!pair) return;
+      const matchedBy = Object.entries(matchState).find(([,v]) => v === pid);
+      let cls = matchedBy ? ' ws-match__item--matched' : '';
+      html += `<button class="ws-match__item${cls}" data-mid="${pid}" data-side="right">${pair.right}</button>`;
+    });
+    html += `</div>`;
+    return html;
+  },
+
+  // ── RENDER SORT (helper, for re-rendering after clicks) ──
+  renderSort(ex, isResults) {
+    const sortState = ex.userOrder || [];
+    let html = '';
+    if (!isResults) {
+      html += `<div class="ws-sort__pool">`;
+      ex.displayOrder.forEach(itemId => {
+        const item = ex.items.find(i => i.id === itemId);
+        if (!item || sortState.includes(itemId)) return;
+        html += `<button class="ws-sort__item" data-sid="${item.id}">${item.label}</button>`;
+      });
+      html += `</div><div class="ws-sort__order">`;
+      sortState.forEach((itemId, pos) => {
+        const item = ex.items.find(i => i.id === itemId);
+        if (!item) return;
+        html += `<button class="ws-sort__item ws-sort__item--placed" data-sid="${item.id}" data-pos="${pos}"><span class="ws-sort__pos">${pos + 1}</span> ${item.label}</button>`;
+      });
+      if (sortState.length < ex.items.length) {
+        html += `<div class="ws-sort__hint">👆 Tap the items above to put them in order!</div>`;
+      }
+      html += `</div>`;
+    }
+    return html;
   },
 
   wordToEmoji(word) {
