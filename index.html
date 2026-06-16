@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BrainQuest – Your Learning Adventure Starts Here!</title>
+  <meta name="description" content="A gamified learning adventure for kids ages 4-11. Complete worksheets, earn XP, level up!"/>
+  <meta name="theme-color" content="#00f0b5"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+  <!-- ═══ BACKGROUND EFFECTS ═══ -->
+  <div id="particle-field"></div>
+  <div class="ambient-orb ambient-orb--1"></div>
+  <div class="ambient-orb ambient-orb--2"></div>
+  <div class="ambient-orb ambient-orb--3"></div>
+  <div id="cursor-glow"></div>
+
+  <!-- ═══ TOAST ═══ -->
+  <div class="toast" id="toast">
+    <div class="toast__icon">🎉</div>
+    <div class="toast__content">
+      <div class="toast__title">Level Up!</div>
+      <div class="toast__sub">+50 XP earned</div>
+    </div>
+  </div>
+
+  <!-- ═══ APP CONTAINER ═══ -->
+  <div class="app-container">
+
+    <!-- ═══ NAV ═══ -->
+    <nav class="nav">
+      <div class="nav__inner">
+        <a href="#" class="nav__logo" onclick="App.navigate('/')">
+          <div class="nav__logo-icon">🧠</div>
+          Brain<span style="color:var(--primary)">Quest</span>
+        </a>
+
+        <button class="nav__toggle" aria-label="Toggle menu">☰</button>
+
+        <ul class="nav__links">
+          <li><a class="nav__link" href="#/dashboard">Dashboard</a></li>
+          <li><a class="nav__link" href="#/quests">Quests</a></li>
+          <li><a class="nav__link" href="#/leaderboard">Leaderboard</a></li>
+          <li><a class="nav__link" href="#/badges">Badges</a></li>
+          <li><a class="nav__link" href="#/generator">Generator</a></li>
+        </ul>
+
+        <div class="nav__actions">
+          <div class="nav__xp" style="display:none">
+            <span class="nav__xp-icon">⭐</span>
+            <span>0 XP</span>
+          </div>
+          <div class="nav__avatar" style="display:none">🧙</div>
+          <button class="nav__btn">Start Quest ⚔️</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══ PAGE: HOME ═══ -->
+    <div class="page page--active" id="page-home">
+      <section class="hero">
+        <div class="hero__emblem">
+          <div class="hero__emblem-ring"></div>
+          <div class="hero__emblem-ring"></div>
+          <div class="hero__emblem-ring"></div>
+          <div class="hero__emblem-inner">🧠</div>
+        </div>
+        <div class="hero__badge"><span class="hero__badge-dot"></span>Your Learning Adventure Awaits</div>
+        <h1 class="hero__title">
+          <span class="hero__title-gradient">Conquer Every</span>
+          <span class="hero__title-white">Brain Quest!</span>
+        </h1>
+        <p class="hero__sub">Complete worksheets. Earn XP. Level up. Unlock new quests. Your journey from Level 0 to Master Brain starts right here — for free!</p>
+        <div class="hero__actions">
+          <button class="hero__btn-primary" onclick="App.navigate('/login')" data-magnetic>⚔️ Begin Your Quest</button>
+          <button class="hero__btn-secondary" onclick="App.navigate('/login')" data-magnetic>🗺 Explore Subjects</button>
+        </div>
+        <div class="hero__scroll">
+          <div class="hero__scroll-bar"></div>
+          Scroll to explore
+        </div>
+      </section>
+
+      <!-- FEATURES SNEAK PEEK -->
+      <div class="wrap section">
+        <div class="s-head reveal">
+          <div>
+            <div class="section__label">⚡ What Awaits</div>
+            <div class="section__title">Your BrainQuest Adventure</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;">
+          <div class="reward-card reveal" style="text-align:left;padding:24px;">
+            <div class="reward-card__shine"></div>
+            <div style="font-size:2rem;margin-bottom:10px;">⚔️</div>
+            <div class="reward-card__name" style="font-size:0.95rem;margin-bottom:6px;">6 Epic Quests</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);line-height:1.6;">Work through levels 0–5, from basic tracing to multiplication mastery.</div>
+          </div>
+          <div class="reward-card reveal" style="text-align:left;padding:24px;">
+            <div class="reward-card__shine"></div>
+            <div style="font-size:2rem;margin-bottom:10px;">⭐</div>
+            <div class="reward-card__name" style="font-size:0.95rem;margin-bottom:6px;">XP & Levels</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);line-height:1.6;">Earn XP for every worksheet. Level up to unlock new challenges!</div>
+          </div>
+          <div class="reward-card reveal" style="text-align:left;padding:24px;">
+            <div class="reward-card__shine"></div>
+            <div style="font-size:2rem;margin-bottom:10px;">🏆</div>
+            <div class="reward-card__name" style="font-size:0.95rem;margin-bottom:6px;">Badges & Rewards</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);line-height:1.6;">Collect achievements, build streaks, and climb the leaderboard.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBJECTS PREVIEW -->
+      <div class="wrap section">
+        <div class="s-head reveal">
+          <div>
+            <div class="section__label">🗺 Subject Realms</div>
+            <div class="section__title">Choose Your Realm</div>
+          </div>
+          <a href="#/login" class="section__more">All subjects →</a>
+        </div>
+        <div class="subj-grid">
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--secondary)"></div><div class="subj-card__icon">🔤</div><div class="subj-card__name">Alphabet Realm</div><div class="subj-card__count">48 worksheets</div><div class="subj-card__level">From Level 1</div></div>
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--amber)"></div><div class="subj-card__icon">🔢</div><div class="subj-card__name">Number Kingdom</div><div class="subj-card__count">36 worksheets</div><div class="subj-card__level">From Level 2</div></div>
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--cyan)"></div><div class="subj-card__icon">➕</div><div class="subj-card__name">Math Fortress</div><div class="subj-card__count">72 worksheets</div><div class="subj-card__level">From Level 3</div></div>
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--rose)"></div><div class="subj-card__icon">📖</div><div class="subj-card__name">Word Wizard Tower</div><div class="subj-card__count">54 worksheets</div><div class="subj-card__level">From Level 4</div></div>
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--orange)"></div><div class="subj-card__icon">🎨</div><div class="subj-card__name">Color Caves</div><div class="subj-card__count">60 worksheets</div><div class="subj-card__level">Any Level</div></div>
+          <div class="subj-card reveal"><div class="subj-card__glow"></div><div class="subj-card__accent" style="background:var(--green)"></div><div class="subj-card__icon">🧩</div><div class="subj-card__name">Puzzle Dungeon</div><div class="subj-card__count">28 worksheets</div><div class="subj-card__level">From Level 2</div></div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="wrap section" style="text-align:center;">
+        <div class="reveal" style="padding:40px 0;">
+          <div style="font-size:3rem;margin-bottom:16px;">🧠</div>
+          <h2 style="font-family:'Fredoka One',sans-serif;font-size:clamp(1.5rem,3vw,2.2rem);color:var(--white);margin-bottom:12px;">Ready to Start Your Quest?</h2>
+          <p style="color:var(--text-dim);margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;">Join thousands of young scholars on the ultimate learning adventure. It's free!</p>
+          <button class="hero__btn-primary" onclick="App.navigate('/login')">⚔️ Begin Your Journey</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE: AUTH ═══ -->
+    <div class="page" id="page-auth">
+      <div class="auth-page">
+        <div class="auth-card"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE: DASHBOARD ═══ -->
+    <div class="page" id="page-dashboard">
+      <!-- HUD -->
+      <div class="hud">
+        <div class="hud__inner">
+          <div class="hud__player">
+            <div class="hud__avatar">🧙
+              <span class="hud__avatar-level">Lv.0</span>
+            </div>
+            <div class="hud__info">
+              <div class="hud__name">Young Scholar</div>
+              <div class="hud__rank">⚔️ Apprentice Explorer</div>
+            </div>
+          </div>
+          <div class="hud__xp">
+            <div class="hud__xp-label">
+              <span>XP Progress</span>
+              <span>0 / 200 XP</span>
+            </div>
+            <div class="hud__xp-track">
+              <div class="hud__xp-fill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="hud__stats">
+            <div class="hud__stat"><div class="hud__stat-num" id="statSheets">0</div><div class="hud__stat-lbl">Quests</div></div>
+            <div class="hud__stat"><div class="hud__stat-num" id="statStreak">🔥 0</div><div class="hud__stat-lbl">Streak</div></div>
+            <div class="hud__stat"><div class="hud__stat-num">0</div><div class="hud__stat-lbl">Badges</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Content -->
+      <div class="wrap section dashboard-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: QUESTS ═══ -->
+    <div class="page" id="page-quests">
+      <div class="wrap section quests-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: WORKSHEET ═══ -->
+    <div class="page" id="page-worksheet">
+      <div class="wrap section worksheet-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: LEADERBOARD ═══ -->
+    <div class="page" id="page-leaderboard">
+      <div class="wrap section leaderboard-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: BADGES ═══ -->
+    <div class="page" id="page-badges">
+      <div class="wrap section badges-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: PROFILE ═══ -->
+    <div class="page" id="page-profile">
+      <div class="wrap section profile-content"></div>
+    </div>
+
+    <!-- ═══ PAGE: GENERATOR ═══ -->
+    <div class="page" id="page-generator">
+      <div class="wrap section generator-content"></div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer__grid">
+          <div class="footer__brand">
+            <a href="#" class="nav__logo" onclick="App.navigate('/')">
+              <div class="nav__logo-icon">🧠</div>
+              Brain<span style="color:var(--primary)">Quest</span>
+            </a>
+            <p>The ultimate learning quest for kids PreK through Grade 5. Free worksheets, XP, and glory.</p>
+          </div>
+          <div class="footer__col">
+            <h4>Quest Realms</h4>
+            <ul>
+              <li><a href="#/generator">🔤 Alphabet Realm</a></li>
+              <li><a href="#/generator">🔢 Number Kingdom</a></li>
+              <li><a href="#/generator">➕ Math Fortress</a></li>
+              <li><a href="#/generator">📖 Word Wizard Tower</a></li>
+              <li><a href="#/generator">🎨 Color Caves</a></li>
+              <li><a href="#/generator">🧩 Puzzle Dungeon</a></li>
+            </ul>
+          </div>
+          <div class="footer__col">
+            <h4>Grade Levels</h4>
+            <ul>
+              <li><a href="#/generator">Preschool</a></li>
+              <li><a href="#/generator">Kindergarten</a></li>
+              <li><a href="#/generator">Grade 1</a></li>
+              <li><a href="#/generator">Grade 2</a></li>
+              <li><a href="#/generator">Grades 3–5</a></li>
+            </ul>
+          </div>
+          <div class="footer__col">
+            <h4>Guild Info</h4>
+            <ul>
+              <li><a href="#">About BrainQuest</a></li>
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Use</a></li>
+              <li><a href="#">Contact</a></li>
+              <li><a href="#">Parents & Teachers</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer__bottom">
+          <span>© 2026 BrainQuest. All quests reserved.</span>
+          <span>⚔️ Level up your mind — it's free!</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- config.js is gitignored — contains Supabase credentials (public anon key) -->
+  <!-- For local dev: copy config.example.js → config.js and fill in your keys -->
+  <!-- For production: injected by GitHub Actions workflow from repo secrets -->
+  <script src="config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/gamification.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

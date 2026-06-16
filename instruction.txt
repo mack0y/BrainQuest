@@ -1,0 +1,89 @@
+You are an expert full-stack developer. Build BrainQuest, a gamified learning platform for children ages 4-11.
+
+## PROJECT REQUIREMENTS
+
+### Tech Stack
+- Frontend: HTML5, CSS3, Vanilla JavaScript (no frameworks)
+- Backend: Supabase (Auth, PostgreSQL, Storage, Realtime)
+- Hosting: GitHub Pages
+- PWA: Service worker with offline support
+
+### Core Features
+
+1. **Authentication System**
+   - Email/password signup and login
+   - Google OAuth option
+   - Session persistence with Supabase
+   - User profiles with avatars and XP tracking
+
+2. **Quest System**
+   - 6 levels (0-5) with increasing difficulty
+   - XP rewards for completing worksheets
+   - Visual quest path with locked/unlocked states
+   - Level-up notifications and celebrations
+
+3. **Gamification Elements**
+   - XP bar and level display
+   - Streak counter (daily login bonus)
+   - Badge/achievement system
+   - Leaderboard (global and weekly)
+   - Boss battles (collaborative challenges)
+
+4. **Adaptive Learning**
+   - Difficulty adjustment based on performance
+   - Spaced repetition for review
+   - Skill mastery tracking
+   - Personalized worksheet recommendations
+
+5. **Social Features**
+   - Study squads (3-5 members)
+   - Squad quests with shared progress
+   - Real-time chat within squads
+   - Friend system
+
+6. **Parent/Teacher Dashboard**
+   - Link child accounts
+   - View progress analytics
+   - Set learning goals
+   - Generate PDF reports
+   - Configure alerts (low activity, struggling)
+
+7. **PWA Features**
+   - Installable app
+   - Offline worksheet access
+   - Background sync for completions
+   - Push notifications
+
+8. **Accessibility**
+   - WCAG 2.1 AA compliant
+   - High contrast mode
+   - Dyslexic font option
+   - Screen reader support
+   - Keyboard navigation
+   - Voice commands
+
+9. **Monetization**
+   - Free tier (50 worksheets)
+   - Premium tier ($4.99/month, unlimited)
+   - School tier ($199/year, classroom management)
+   - Stripe integration for payments
+
+### Database Schema (Supabase)
+
+Create these tables with proper RLS policies:
+
+- profiles (user_id, username, avatar, level, xp, total_xp, streak_days)
+- quests (id, level, title, xp_reward, required_quest_id)
+- quest_progress (user_id, quest_id, status, completed_at)
+- worksheets (id, title, subject, grade, difficulty, content, xp_reward)
+- worksheet_completions (user_id, worksheet_id, score, xp_earned)
+- badges (id, name, icon, requirement_type, requirement_value)
+- user_badges (user_id, badge_id, earned_at)
+- study_squads (id, name, invite_code, created_by)
+- squad_members (squad_id, user_id, role)
+- family_relationships (parent_id, child_id, approved)
+- subscriptions (user_id, tier, stripe_customer_id, expires_at)
+
+### File Structure
+
+Generate all files in this structure:

@@ -1,0 +1,18 @@
+app.js:21 Supabase init failed: Error: supabaseUrl is required.
+    at supabase.js:20:31145
+    at new Ss (supabase.js:24:43522)
+    at Object.createClient (supabase.js:24:46815)
+    at initSupabase (db.js:17:32)
+    at Object.init (app.js:19:9)
+    at HTMLDocument.<anonymous> (app.js:877:57)
+init @ app.js:21Understand this warning
+auth.js:24 No existing session
+init @ auth.js:24Understand this warning
+db.js:62 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'auth')
+    at onAuthChange (db.js:62:20)
+    at Object.init (auth.js:28:25)
+    at async Object.init (app.js:28:5)Understand this error
+manifest.json:1 Manifest: property 'url' ignored, should be within scope of the manifest.Understand this warning
+manifest.json:1 Manifest: property 'url' of 'shortcut' not present.Understand this warning
+manifest.json:1 Manifest: property 'url' ignored, should be within scope of the manifest.Understand this warning
+manifest.json:1 Manifest: property 'url' of 'shortcut' not present.

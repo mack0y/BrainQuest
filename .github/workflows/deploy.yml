@@ -1,0 +1,69 @@
+# ═══════════════════════════════════════════
+# BrainQuest – Deploy to GitHub Pages
+# ═══════════════════════════════════════════
+# Injects Supabase credentials from repo secrets,
+# then deploys the static site to GitHub Pages.
+#
+# Required repository secrets:
+#   SUPABASE_URL       – Your Supabase project URL
+#   SUPABASE_ANON_KEY  – Your Supabase anon/public key
+# ═══════════════════════════════════════════
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+  # Allows manual trigger from Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify secrets are configured
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "❌ ERROR: SUPABASE_URL and SUPABASE_ANON_KEY secrets must be set!"
+            echo "   Go to: Settings → Secrets and variables → Actions"
+            echo "   Add these two secrets before deploying."
+            exit 1
+          fi
+          echo "✅ Secrets verified"
+
+      - name: Inject Supabase config
+        run: |
+          cat > config.js << 'CONFIGEOF'
+          const BRAINQUEST_CONFIG = {
+            supabaseUrl: '${{ secrets.SUPABASE_URL }}',
+            supabaseAnonKey: '${{ secrets.SUPABASE_ANON_KEY }}'
+          };
+          CONFIGEOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

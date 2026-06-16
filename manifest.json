@@ -1,0 +1,32 @@
+{
+  "name": "BrainQuest",
+  "short_name": "BrainQuest",
+  "description": "A gamified learning adventure for kids ages 4-11. Complete worksheets, earn XP, level up!",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#080a12",
+  "theme_color": "#00f0b5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23080a12'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='320'%3E🧠%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["education", "kids", "games"],
+  "shortcuts": [
+    {
+      "name": "My Quests",
+      "short_name": "Quests",
+      "description": "View your quest progress",
+      "url": "./#/quests"
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Rankings",
+      "description": "See the top Brain Questers",
+      "url": "./#/leaderboard"
+    }
+  ]
+}
