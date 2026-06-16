@@ -95,7 +95,7 @@ window.WorksheetEngine = {
       const options = this.shuffle([lower, ...this.getRandomLetters(lower, 3, true)]);
       exercises.push({
         type: 'choose',
-        question: `Find the lowercase match for <span class="ws-big-letter">${letter}</span>`,
+        question: `Find the small letter that goes with <span class="ws-big-letter">${letter}</span>`,
         options: options.map(l => ({ value: l, label: l })),
         answer: lower,
         xp: 15
@@ -243,14 +243,13 @@ window.WorksheetEngine = {
 
     // Visual counting
     if (count > 3) {
-      const a = Math.floor(Math.random() * 5) + 1;
-      const b = Math.floor(Math.random() * 5) + 1;
-      const items = '●'.repeat(a) + ' + ' + '●'.repeat(b);
+      const total = Math.floor(Math.random() * 9) + 1;
+      const items = '●'.repeat(total);
       exercises.push({
         type: 'input',
-        question: `Count the dots: ${items}`,
-        answer: (a + b).toString(),
-        accept: (a + b).toString(),
+        question: `How many dots? ${items}`,
+        answer: total.toString(),
+        accept: total.toString(),
         xp: 15
       });
     }
@@ -336,7 +335,7 @@ window.WorksheetEngine = {
       const scrambled = letters.join('');
       exercises.push({
         type: 'input',
-        question: `Unscramble the word: <span class="ws-big-letter">${scrambled}</span>`,
+        question: `Fix the mixed-up letters! <span class="ws-big-letter">${scrambled}</span>`,
         hint: `It starts with "${word[0]}"`,
         answer: word,
         accept: word,
@@ -428,7 +427,7 @@ window.WorksheetEngine = {
       const cat = categories[Math.floor(Math.random() * categories.length)];
       exercises.push({
         type: 'choose',
-        question: `Which one doesn't belong? ${cat.items.join(' ')}`,
+        question: `Find the one that is different! ${cat.items.join(' ')}`,
         options: cat.items.map(i => ({ value: i, label: i })),
         answer: cat.correct,
         xp: 20
