@@ -883,6 +883,8 @@ const App = {
       }
       // Refresh profile and navigate back to dashboard
       await Auth.onLogin();
+    } else {
+      UI.showToast('Error', 'Could not complete quest. Try again!', '❌');
     }
   },
 
