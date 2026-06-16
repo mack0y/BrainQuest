@@ -568,8 +568,10 @@ window.WorksheetEngine = {
 
     html += `<div class="ws__exercises">`;
     worksheet.exercises.forEach((ex, i) => {
-      const status = isResults ? (ex.userAnswer === ex.answer ? 'ws-ex--correct' : 'ws-ex--wrong') : '';
-      const feedback = isResults && ex.userAnswer !== ex.answer ? `<div class="ws-ex__feedback">Correct answer: <strong>${ex.answer}</strong></div>` : '';
+      // Interactive types (match, sort, drag*) handle their own inline feedback & styling
+      const hasAnswer = ex.answer !== undefined;
+      const status = isResults && hasAnswer ? (ex.userAnswer === ex.answer ? 'ws-ex--correct' : 'ws-ex--wrong') : '';
+      const feedback = isResults && hasAnswer && ex.userAnswer !== ex.answer ? `<div class="ws-ex__feedback">Correct answer: <strong>${ex.answer}</strong></div>` : '';
 
       html += `
         <div class="ws-ex ${status}" data-id="${ex.id}">
@@ -1406,6 +1408,7 @@ window.WorksheetEngine = {
           <span class="ws-dragorder__pos">${pos + 1}</span>
           <span class="ws-dragorder__label">${item.label}</span>
           ${!correct ? `<span class="ws-dragorder__result-correction">→ should be #${item.correctOrder + 1}</span>` : ''}
+          ${!correct ? `<div class="ws-ex__feedback">✓ Correct: ${item.label} → position #${item.correctOrder + 1}</div>` : ''}
         </div>`;
       });
     }
@@ -1509,7 +1512,7 @@ window.WorksheetEngine = {
               return `<span class="ws-dragzone__zone-item ${placed ? 'ws-dragzone__zone-item--correct' : 'ws-dragzone__zone-item--missing'}">${item.label}</span>`;
             }).join('')}
           </div>
-          ${!allCorrect ? `<div class="ws-dragzone__zone-correction">${correctItems.map(i => i.label).join(', ')}</div>` : ''}
+          ${!allCorrect ? `<div class="ws-dragzone__zone-correction">Correct items: ${correctItems.map(i => i.label).join(', ')}</div>` : ''}
         </div>`;
       });
       html += `</div>`;
