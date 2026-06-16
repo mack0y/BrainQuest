@@ -239,11 +239,12 @@ async function updateStreak(userId) {
 
     streakDays = lastLogin === yesterdayStr ? streakDays + 1 : 1;
 
+    // Award 10 XP login bonus through gamification system (handles level-up)
+    await Gamification.addXp(userId, 10, 'login');
+    // Also update streak fields separately
     await updateProfile(userId, {
       last_login: today,
-      streak_days: streakDays,
-      xp: profile.xp + 10, // daily login bonus
-      total_xp: profile.total_xp + 10
+      streak_days: streakDays
     });
   }
 

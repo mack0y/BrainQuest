@@ -11,30 +11,24 @@ const Gamification = {
       const profile = await getProfile(userId);
       if (!profile) return null;
 
-      const newXp = (profile.xp || 0) + amount;
+      let carryXp = (profile.xp || 0) + amount;
       const newTotalXp = (profile.total_xp || 0) + amount;
-      const xpForNext = (profile.level + 1) * 200;
 
       let leveledUp = false;
       let newLevel = profile.level;
 
-      // Check for level up (200 XP per level)
-      if (newXp >= xpForNext) {
-        newLevel = profile.level + 1;
+      // Handle multiple level-ups in a single call
+      while (carryXp >= (newLevel + 1) * 200) {
+        carryXp -= (newLevel + 1) * 200;
+        newLevel++;
         leveledUp = true;
-        // Carry over extra XP
-        const remainingXp = newXp - xpForNext;
-        await updateProfile(userId, {
-          level: newLevel,
-          xp: remainingXp,
-          total_xp: newTotalXp
-        });
-      } else {
-        await updateProfile(userId, {
-          xp: newXp,
-          total_xp: newTotalXp
-        });
       }
+
+      await updateProfile(userId, {
+        level: newLevel,
+        xp: carryXp,
+        total_xp: newTotalXp
+      });
 
       // Refresh profile
       const updatedProfile = await getProfile(userId);
