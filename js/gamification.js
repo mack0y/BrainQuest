@@ -45,6 +45,10 @@ const Gamification = {
       };
     } catch (e) {
       console.warn('XP update failed:', e);
+      // Notify user when XP fails to save
+      try {
+        UI.showToast('⚠️ Sync Issue', 'XP will be saved when connected.', '⚠️');
+      } catch (_) {}
       return null;
     }
   },
@@ -65,6 +69,7 @@ const Gamification = {
           case 'quest_complete': {
             const progress = await getQuestProgress(userId);
             const done = progress.filter(p => p.status === 'completed').length;
+            // Use > because value 0 means "complete at least 1 quest"
             earned = done > badge.requirement_value;
             break;
           }
@@ -77,6 +82,22 @@ const Gamification = {
           case 'total_xp':
             earned = (profile.total_xp || 0) >= badge.requirement_value;
             break;
+          case 'all_quests': {
+            const progress = await getQuestProgress(userId);
+            const done = progress.filter(p => p.status === 'completed').length;
+            earned = done >= badge.requirement_value;
+            break;
+          }
+          case 'leaderboard_top': {
+            // Check if user is #1 on the leaderboard
+            try {
+              const leaders = await getLeaderboard(1);
+              earned = leaders.length > 0 && leaders[0].id === userId;
+            } catch (e) {
+              earned = false;
+            }
+            break;
+          }
           default:
             break;
         }
@@ -97,6 +118,10 @@ const Gamification = {
   // Initialize quest progress for a new user
   async initQuestProgress(userId) {
     try {
+      // Check if progress rows already exist to avoid redundant upserts on every login
+      const existing = await getQuestProgress(userId);
+      if (existing.length > 0) return;
+
       const quests = await getQuests();
       for (let i = 0; i < quests.length; i++) {
         const quest = quests[i];

@@ -258,8 +258,11 @@ const App = {
   // ═══════════════════════════════════════════
   renderAuth() {
     const container = document.querySelector('#page-auth .auth-card');
-    if (!container || container.dataset.rendered) return;
-    container.dataset.rendered = 'true';
+    if (!container) return;
+    // Route-aware rendering: skip if this route was already rendered
+    const routeKey = this.currentRoute === '/signup' ? 'signup' : 'login';
+    if (container.dataset.authRoute === routeKey) return;
+    container.dataset.authRoute = routeKey;
 
     const isSignup = this.currentRoute === '/signup';
 
@@ -892,9 +895,9 @@ const App = {
     if (result) {
       if (result.leveledUp) {
         UI.celebrateLevelUp(result.newLevel);
-      } else {
-        UI.showToast('+XP Earned!', `+${result.xpGained} XP • Quest complete!`, '⭐');
       }
+      // Show quest completion toast (distinct from worksheet XP toast)
+      UI.showToast('⚔️ Quest Complete!', `+${result.xpGained} quest XP earned!`, '🏆');
       // Refresh profile and navigate back to dashboard
       await Auth.onLogin();
     } else {

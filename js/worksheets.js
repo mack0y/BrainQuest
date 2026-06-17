@@ -1028,10 +1028,12 @@ window.WorksheetEngine = {
         const xpEarned = Math.round(worksheet.totalXP * (pct / 100));
         const passed = pct >= 60;
 
-        UI.showToast('🏆 Worksheet Complete!', `+${xpEarned} XP • ${score}/${worksheet.exercises.length} correct`, '🏆');
-
-        // Save to Supabase if logged in
+        // Save to Supabase if logged in (awards worksheet XP)
         this.saveCompletion(worksheet, score, xpEarned);
+
+        // Show worksheet XP toast (in quest mode, this is separate from quest reward XP)
+        const questLabel = onQuestComplete ? '📝 Worksheet done! ' : '';
+        UI.showToast('🏆 Worksheet Complete!', `${questLabel}+${xpEarned} XP • ${score}/${worksheet.exercises.length} correct`, '🏆');
 
         // Re-render worksheet with results
         container.innerHTML = this.renderWorksheet(worksheet);
@@ -1318,13 +1320,8 @@ window.WorksheetEngine = {
       Object.keys(ex.userMatches).forEach(key => {
         if (ex.userMatches[key] === sourceId) delete ex.userMatches[key];
       });
-      // If target already has a source, swap: return old source to pool
-      if (ex.userMatches[tgtId]) {
-        const oldSource = ex.userMatches[tgtId];
-        delete ex.userMatches[tgtId];
-        ex.userMatches[tgtId] = sourceId;
-        return;
-      }
+      // If target already has a source, the old source is automatically
+      // returned to the pool when we replace it (no early return needed)
       ex.userMatches[tgtId] = sourceId;
     } else if (ex.type === 'dragzone') {
       // Check if dropped on a zone or on a placed item (to remove it)

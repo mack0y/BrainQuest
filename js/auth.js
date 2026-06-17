@@ -47,7 +47,7 @@ const Auth = {
   async onLogin() {
     if (this.currentProfile) {
       try {
-        // Initialize quest progress for new users
+        // Initialize quest progress for new users only (checks if rows exist)
         await Gamification.initQuestProgress(this.currentProfile.id);
         // Update daily streak & login bonus
         await updateStreak(this.currentProfile.id);
@@ -57,7 +57,10 @@ const Auth = {
         console.warn('Login update failed:', e);
       }
     }
-    App.navigate('/dashboard');
+    // Only navigate to dashboard if not already there (prevents double-nav on auth listener)
+    if (App.currentRoute !== '/dashboard') {
+      App.navigate('/dashboard');
+    }
   },
 
   // Called after logout
