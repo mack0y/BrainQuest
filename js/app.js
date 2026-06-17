@@ -241,7 +241,7 @@ const App = {
         await this.renderProfile();
         break;
       case 'page-generator':
-        this.renderGenerator();
+        await this.renderGenerator();
         break;
     }
   },
@@ -517,16 +517,28 @@ const App = {
   // ═══════════════════════════════════════════
   // PAGE: GENERATOR
   // ═══════════════════════════════════════════
-  renderGenerator() {
+  async renderGenerator() {
     const container = document.querySelector('#page-generator .generator-content');
     if (!container) return;
     const preSelectedSubject = this.pendingSubject;
     this.pendingSubject = null;
-    this.renderGeneratorForm(container, 'gen', null, preSelectedSubject);
+
+    // Fetch quest progress indicator data
+    const profile = Auth.currentProfile;
+    let questStatuses = [];
+    if (profile) {
+      try {
+        questStatuses = await Gamification.getQuestStatuses(profile.id);
+      } catch (e) {
+        // non-critical, strip just won't show
+      }
+    }
+
+    this.renderGeneratorForm(container, 'gen', null, preSelectedSubject, questStatuses);
   },
 
   // ── SHARED GENERATOR FORM (used by both worksheet, generator, and quest-mode) ──
-  renderGeneratorForm(container, prefix, questData = null, preSelectedSubject = null) {
+  renderGeneratorForm(container, prefix, questData = null, preSelectedSubject = null, questStatuses = []) {
     const isQuestMode = !!questData;
     const label = isQuestMode
       ? `${questData.icon || '⚔️'} ${questData.title}`
@@ -553,6 +565,37 @@ const App = {
       ? subjectMap[preSelectedSubject]
       : questSubjectIdx;
 
+    // Build compact quest progress strip (free-play mode only)
+    let questStripHTML = '';
+    if (!isQuestMode && questStatuses.length > 0) {
+      questStripHTML = `
+      <div class="quest-strip reveal">
+        <div class="quest-strip__header">
+          <span class="quest-strip__label">⚔️ Quest Progress</span>
+          <a href="#/quests" class="quest-strip__more">Full map →</a>
+        </div>
+        <div class="quest-strip__track">
+          ${questStatuses.map((q, i) => {
+            const s = q.progress?.status || 'locked';
+            const isDone = s === 'completed';
+            const isCurrent = s === 'available' || s === 'in_progress';
+            let cls = 'quest-strip__node';
+            if (isDone) cls += ' quest-strip__node--done';
+            else if (isCurrent) cls += ' quest-strip__node--current';
+            else cls += ' quest-strip__node--locked';
+            const link = isCurrent ? `href="#/worksheet?quest=${q.id}"` : '';
+            const tag = link ? 'a' : 'span';
+            return `<${tag} ${link} class="${cls}" title="Level ${q.level}: ${q.title}${isDone ? ' ✓' : ''}">
+              <span class="quest-strip__icon">${q.icon || '⚔️'}</span>
+              <span class="quest-strip__level">Lv.${q.level}</span>
+              <span class="quest-strip__status">${isDone ? '✓' : isCurrent ? '▶' : '🔒'}</span>
+            </${tag}>`;
+          }).join('')}
+        </div>
+      </div>
+      `;
+    }
+
     container.innerHTML = `
       ${isQuestMode ? `
       <div class="ws__quest-banner reveal">
@@ -564,6 +607,7 @@ const App = {
         <span class="ws__quest-banner-sub">Level ${questData.level}</span>
       </div>
       ` : ''}
+      ${questStripHTML}
       <div class="s-head reveal">
         <div>
           <div class="section__label">${isQuestMode ? `${questData.icon || '⚔️'} Quest Activity` : '✨ Pick Your Practice'}</div>
