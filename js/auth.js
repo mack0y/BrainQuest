@@ -114,14 +114,14 @@ const Auth = {
 
   // Get XP calculation for next level
   getLevelInfo(profile) {
-    if (!profile) return { level: 0, xp: 0, totalXp: 0, xpForNext: 100, progress: 0 };
+    if (!profile) return { level: 0, xp: 0, totalXp: 0, xpForNext: XP.forLevel(0), progress: 0 };
 
     const level = profile.level || 0;
     const xp = profile.xp || 0;
     const totalXp = profile.total_xp || 0;
 
-    // XP required per level (increases each level)
-    const xpForNext = (level + 1) * 200;
+    // XP required per level (uses exponential formula from XP constants)
+    const xpForNext = XP.forLevel(level);
     const progress = Math.min((xp / xpForNext) * 100, 100);
 
     return { level, xp, totalXp, xpForNext, progress };

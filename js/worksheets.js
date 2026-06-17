@@ -7,7 +7,11 @@ window.WorksheetEngine = {
 
   // ── GENERATE a full worksheet ──
   generate(subject, grade, difficulty) {
+    const diff = this.parseDifficulty(difficulty);
+    const diffMult = XP.DIFFICULTY[diff] || 1;
     const exercises = this.generateExercises(subject, grade, difficulty);
+    // Scale each exercise's XP by difficulty multiplier
+    exercises.forEach(ex => { ex.xp = Math.round(ex.xp * diffMult); });
     const totalXP = exercises.reduce((s, e) => s + e.xp, 0);
     return {
       id: Date.now(),

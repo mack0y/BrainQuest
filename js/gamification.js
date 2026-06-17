@@ -2,7 +2,59 @@
 // BrainQuest – Gamification Engine
 // ═══════════════════════════════════════════
 
+// ── CONSTANTS ──
+const XP = {
+  // XP needed for level N → N+1: XP_FOR_LEVEL(N) = Math.floor(BASE * Math.pow(SCALE, N))
+  // Level 0→1: 100, Level 1→2: 125, Level 5→6: ~305, Level 10→11: ~931
+  // Total to reach Level 10: ~7,200 XP (feasible with varied worksheets)
+  BASE: 100,
+  SCALE: 1.25,
+  // Difficulty multipliers for worksheet XP
+  DIFFICULTY: { easy: 1, normal: 1.5, hard: 2.5, legendary: 4 },
+  // Base XP per exercise type
+  EXERCISE: { basic: 10, standard: 15, advanced: 20, challenge: 25, mastery: 30 },
+  // Quest/base XP rewards map to these tiers
+  // Helper: calculate XP needed for a specific level
+  forLevel(lvl) { return Math.floor(this.BASE * Math.pow(this.SCALE, lvl)); },
+  // Helper: calculate total XP to reach a level
+  totalForLevel(lvl) {
+    let total = 0;
+    for (let i = 0; i < lvl; i++) total += this.forLevel(i);
+    return total;
+  }
+};
+
+const BADGE_CACHE_TTL = 60000; // 1 minute badge cache
+
 const Gamification = {
+  // Badge cache to avoid redundant DB queries
+  _badgeCache: null,
+  _badgeCacheTime: 0,
+
+  _getCachedBadges() {
+    if (this._badgeCache && Date.now() - this._badgeCacheTime < BADGE_CACHE_TTL) {
+      return this._badgeCache;
+    }
+    return null;
+  },
+
+  _setCachedBadges(data) {
+    this._badgeCache = data;
+    this._badgeCacheTime = Date.now();
+  },
+
+  _getCachedUserBadges(userId) {
+    const key = 'ub_' + userId;
+    const cached = this[key];
+    if (cached && Date.now() - cached.time < BADGE_CACHE_TTL) {
+      return cached.data;
+    }
+    return null;
+  },
+
+  _setCachedUserBadges(userId, data) {
+    this['ub_' + userId] = { data, time: Date.now() };
+  },
   // Add XP to user profile
   async addXp(userId, amount, source = 'quest') {
     if (!userId || !amount) return null;
@@ -17,9 +69,9 @@ const Gamification = {
       let leveledUp = false;
       let newLevel = profile.level;
 
-      // Handle multiple level-ups in a single call
-      while (carryXp >= (newLevel + 1) * 200) {
-        carryXp -= (newLevel + 1) * 200;
+      // Handle multiple level-ups in a single call using exponential formula
+      while (carryXp >= XP.forLevel(newLevel)) {
+        carryXp -= XP.forLevel(newLevel);
         newLevel++;
         leveledUp = true;
       }
@@ -56,8 +108,18 @@ const Gamification = {
   // Check and award badges based on achievements
   async checkBadges(userId, profile) {
     try {
-      const badges = await getBadges();
-      const userBadges = await getUserBadges(userId);
+      // Use cached badges to avoid redundant DB queries
+      let badges = this._getCachedBadges();
+      if (!badges) {
+        badges = await getBadges();
+        this._setCachedBadges(badges);
+      }
+
+      let userBadges = this._getCachedUserBadges(userId);
+      if (!userBadges) {
+        userBadges = await getUserBadges(userId);
+        this._setCachedUserBadges(userId, userBadges);
+      }
       const ownedBadgeIds = new Set(userBadges.map(ub => ub.badge_id));
 
       for (const badge of badges) {
@@ -146,7 +208,10 @@ const Gamification = {
 
       // ── LEVEL SYNC: Auto-complete quests + award retroactive XP ──
       // If user is Level 3, quests 0-2 should be completed, quest 3 stays available
+      // Award XP FIRST for each quest, then mark complete (data integrity)
       let retroXpTotal = 0;
+      const newlyCompleted = [];
+
       for (let i = 0; i < quests.length; i++) {
         const quest = quests[i];
         const prog = progressMap[quest.id];
@@ -154,16 +219,20 @@ const Gamification = {
         // Auto-complete quest if user's level exceeds this quest's level
         if (quest.level < userLevel) {
           if (!prog || prog.status !== 'completed') {
-            // Mark quest completed
-            await updateQuestProgress(userId, quest.id, 'completed');
-            progressMap[quest.id] = { status: 'completed' };
-            // Award retroactive XP (only once per quest due to the guard above)
+            // Award XP FIRST
             const retroResult = await this.addXp(userId, quest.xp_reward, 'quest_sync');
             if (retroResult) {
               retroXpTotal += retroResult.xpGained;
+              newlyCompleted.push(quest.id);
             }
           }
         }
+      }
+
+      // THEN mark all quests as completed (only if XP was awarded)
+      for (const qid of newlyCompleted) {
+        await updateQuestProgress(userId, qid, 'completed');
+        progressMap[qid] = { status: 'completed' };
       }
 
       // Show summary toast for retroactive XP (if any was awarded)
@@ -214,17 +283,21 @@ const Gamification = {
     }
   },
 
-  // Complete a quest
+  // Complete a quest — award XP FIRST, then mark complete (data integrity)
   async completeQuest(userId, questId) {
     try {
       const quests = await getQuests();
       const quest = quests.find(q => q.id === questId);
       if (!quest) return null;
 
-      await updateQuestProgress(userId, questId, 'completed');
-
-      // Award XP
+      // Award XP FIRST — if this fails, quest won't be marked complete, safe to retry
       const result = await this.addXp(userId, quest.xp_reward, 'quest');
+
+      // Only mark quest complete if XP was awarded successfully
+      if (result) {
+        await updateQuestProgress(userId, questId, 'completed');
+      }
+
       return result;
     } catch (e) {
       console.warn('Quest completion failed:', e);
