@@ -138,30 +138,52 @@ const Gamification = {
     try {
       const quests = await getQuests();
       const progress = await getQuestProgress(userId);
+      const profile = await getProfile(userId);
+      const userLevel = profile ? (profile.level || 0) : 0;
+
       const progressMap = {};
       progress.forEach(p => { progressMap[p.quest_id] = p; });
 
-      // Check if previous quest is completed to unlock current
+      // SYNC: Auto-complete quests that match the user's level
+      // If user is Level 3, quests 0-2 should be completed, quest 3 should be available
       for (let i = 0; i < quests.length; i++) {
         const quest = quests[i];
         const prog = progressMap[quest.id];
 
-        if (!prog || prog.status === 'locked') {
-          // Check if previous quest is completed
+        // Auto-complete quest if user's level exceeds or equals this quest's level
+        if (quest.level <= userLevel) {
+          if (!prog || prog.status !== 'completed') {
+            await updateQuestProgress(userId, quest.id, 'completed');
+            progressMap[quest.id] = { status: 'completed' };
+          }
+        }
+      }
+
+      // Unlock the next quest after the last completed one
+      for (let i = 0; i < quests.length; i++) {
+        const quest = quests[i];
+        const prog = progressMap[quest.id];
+
+        if (!prog) {
+          // Missing progress row — create it
           if (i === 0) {
-            // First quest should be available
-            if (!prog) {
-              await updateQuestProgress(userId, quest.id, 'available');
-              progressMap[quest.id] = { status: 'available' };
-            }
+            await updateQuestProgress(userId, quest.id, 'available');
+            progressMap[quest.id] = { status: 'available' };
           } else {
             const prevQuest = quests[i - 1];
             const prevProg = progressMap[prevQuest.id];
+            const status = prevProg && prevProg.status === 'completed' ? 'available' : 'locked';
+            await updateQuestProgress(userId, quest.id, status);
+            progressMap[quest.id] = { status };
+          }
+        } else if (prog.status === 'locked') {
+          // Check if previous quest is completed
+          if (i > 0) {
+            const prevQuest = quests[i - 1];
+            const prevProg = progressMap[prevQuest.id];
             if (prevProg && prevProg.status === 'completed') {
-              if (!prog || prog.status === 'locked') {
-                await updateQuestProgress(userId, quest.id, 'available');
-                progressMap[quest.id] = { status: 'available' };
-              }
+              await updateQuestProgress(userId, quest.id, 'available');
+              progressMap[quest.id] = { status: 'available' };
             }
           }
         }
