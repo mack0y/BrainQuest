@@ -150,8 +150,9 @@ const Gamification = {
         const quest = quests[i];
         const prog = progressMap[quest.id];
 
-        // Auto-complete quest if user's level exceeds or equals this quest's level
-        if (quest.level <= userLevel) {
+        // Auto-complete quest if user's level exceeds this quest's level
+        // (A user at Level 3 has quests 0-2 auto-completed; quest 3 stays for manual completion)
+        if (quest.level < userLevel) {
           if (!prog || prog.status !== 'completed') {
             await updateQuestProgress(userId, quest.id, 'completed');
             progressMap[quest.id] = { status: 'completed' };
