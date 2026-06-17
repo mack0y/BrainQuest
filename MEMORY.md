@@ -85,11 +85,14 @@ BrainQuest/
 │   │   ├── Drag system: initDragHandlers/removeDragHandlers/processDragDrop with HTML5 DnD (dragstart/dragover/drop) + touch events (touchstart/touchmove/touchend with floating clone and elementFromPoint hit detection)
 │   │   └── Helpers (shuffle, wordToEmoji, getAnimalWord, subjectColor, renderMatch, renderSort, renderDragOrder, renderDragMatch, renderDragZone)
 │   │
-│   ├── gamification.js     # Gamification engine (179 lines)
-│   │   ├── addXp (add XP, check level-up, carry over)
-│   │   ├── checkBadges (auto-award on conditions met)
+│   ├── gamification.js     # Gamification engine (~220 lines)
+│   │   ├── XP constants (BASE=100, SCALE=1.25, forLevel(), DIFFICULTY multipliers)
+│   │   ├── Badge cache with 60s TTL (_badgeCache, _badgeCacheTime, per-user cache)
+│   │   ├── addXp (add XP, check level-up, carry over, exponential formula)
+│   │   ├── checkBadges (cached, auto-award on conditions met)
 │   │   ├── initQuestProgress (create progress rows for new user)
-│   │   └── getQuestStatuses (enrich quests with progress + unlock logic)
+│   │   ├── getQuestStatuses (enrich quests with progress + user level sync + retroactive XP)
+│   │   └── completeQuest (XP-first then mark complete — data integrity)
 │   │
 │   ├── ui.js               # UI utilities (202 lines)
 │   │   ├── createParticles (floating colored dots)
@@ -102,22 +105,26 @@ BrainQuest/
 │   │   ├── initHeroTilt (parallax on hero title)
 │   │   └── formatXp (1k+ formatting)
 │   │
-│   └── app.js              # Application controller (~970 lines)
+│   ├── quest-strip.js      # Quest progress strip module (40 lines) — NEW
+│   │   └── QuestStrip.build(questStatuses, show) — generates compact horizontal strip HTML
+│   │
+│   └── app.js              # Application controller (~940 lines)
 │       ├── init (bootstrap Supabase, Auth, DOM refs, listeners)
 │       ├── Hash routing (handleRoute, navigate, render; parses ?quest= query param for quest mode)
 │       ├── Navigation updates (XP badge, avatar, active links; Play nav route mapped)
 │       ├── renderHome — Landing page (static, in HTML)
-│       ├── renderAuth — Login/signup form with validation
-│       ├── renderDashboard — HUD + quest path + stats
+│       ├── renderAuth — Login/signup form with validation (route-aware tab switching)
+│       ├── renderDashboard — HUD + quest progress strip + quest path + stats
 │       ├── renderQuests — Full quest map
 │       ├── renderWorksheet — Quest-aware worksheet page (loads pending quest data, enables quest mode)
-│       ├── renderGenerator — Subject/grade/difficulty picker (free-play mode via /play and /generator)
-│       ├── renderGeneratorForm(container, prefix, questData) — Shared form renderer (quest banner, pre-selected subject, scaled difficulty)
+│       ├── renderGenerator — Subject/grade/difficulty picker (free-play mode via /play and /generator, fetches quest statuses for strip)
+│       ├── renderGeneratorForm — Shared form renderer (quest banner, pre-selected subject, scaled difficulty, quest strip)
 │       ├── generateWorksheet / generateWorksheetFor(prefix) — Shared worksheet generation (passes quest callback in quest mode)
 │       ├── completePendingQuest — Completes quest after passing worksheet, awards XP, navigates to dashboard
 │       ├── renderLeaderboard — Top 10 players
 │       ├── renderBadges — Badge collection (locked/unlocked)
 │       ├── renderProfile — Name/avatar editor + stats + sign out
+│       ├── buildQuestStripHTML → QuestStrip.build (extracted to quest-strip.js)
 │       └── getRankTitle — Level-based title mapping
 │
 └── MEMORY.md               # This file
@@ -257,13 +264,16 @@ BrainQuest/
 
 ### XP Calculation
 
-- **Per-level XP requirement**: `(level + 1) * 200`
-  - Level 0 → 1: 200 XP
-  - Level 1 → 2: 400 XP
-  - Level 2 → 3: 600 XP
-  - etc.
-- **Level-up**: When XP ≥ threshold, level increments and excess XP carries over
+- **Per-level XP requirement**: `Math.floor(100 * Math.pow(1.25, level))` (exponential)
+  - Level 0 → 1: 100 XP
+  - Level 1 → 2: 125 XP
+  - Level 2 → 3: 156 XP
+  - Level 5 → 6: ~305 XP
+  - Level 10 → 11: ~931 XP
+  - Total to reach Level 10: ~7,200 XP
+- **Level-up**: When XP ≥ threshold, level increments and excess XP carries over (multi-level supported via while loop)
 - **Quest rewards**: 100–300 XP per quest (defined in seed data)
+- **Worksheet XP**: Base exercise XP multiplied by difficulty multiplier: Easy 1x, Normal 1.5x, Hard 2.5x, Legendary 4x
 - **Daily login bonus**: +10 XP on login when `last_login ≠ today`
 
 ### Quest Unlock Logic
@@ -432,18 +442,29 @@ Then open `http://localhost:3000` in your browser.
 - **Worksheet variety**: Each generation creates new random exercises. However, the same word lists/patterns may repeat across sessions since they're drawn from fixed word banks.
 - **`const` vs `window` globals**: `WorksheetEngine` is declared as `window.WorksheetEngine` (not `const`) to allow browser console/DevTools access for testing. Other modules use `const` since they're accessed by reference from other scripts.
 
-### Fixed Bugs
+### Fixed Bugs & Improvements
 
-| Bug | Fix | Commit |
-|-----|-----|--------|
-| SyntaxError in `getAnimalWord` (broken str_replace left dangling `return` statement) | Restored valid `return map[letter.toUpperCase()]` | `f40fe1b` |
-| `X: 'X-ray'` not an animal word | Changed to `X: 'Xerus'` (African ground squirrel) | `f40fe1b` |
-| `WorksheetEngine` not accessible from browser console (`const` doesn't create `window` property) | Changed `const WorksheetEngine` → `window.WorksheetEngine` | `a7e0a8a` |
-| FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) | `d7f74d3` |
-| Scroll reveal animations never triggered — `.reveal` elements stayed at `opacity: 0` because `initScrollReveal()` was called before async-rendered content existed in the DOM | Added `await` to 5 async page renderers in `renderPage()`; added defensive `UI.initScrollReveal()` calls after `renderQuestPath()`, `generateWorksheetFor()`, badge card appending, and worksheet re-renders in `attachHandlers()` | `9a1621e` |
-| Quests instantly completed on button click — no worksheet required, no actual learning | Replaced instant `Gamification.completeQuest()` with navigation to `#/worksheet?quest=ID`; added quest-mode worksheet rendering with pre-selected subject, quest banner, and "Claim Reward" button on ≥60% score; added `completePendingQuest()` method | `6720bd7` |
-| Navigation race condition — `navigate()` called `render()` directly AND hashchange fired a second render, causing stale state overwriting quest data | navigate() returns early when setting hash; render happens only via hashchange→handleRoute | `9ea4a35` |
-| Match/sort exercise handler duplication — each interaction re-called attachHandlers(), accumulating event listeners | Replaced per-element listeners with event delegation; stored handler refs with removeEventListener before re-adding | `b57f195` + `6e78e23` |
+| Bug | Fix |
+|-----|-----|
+| SyntaxError in `getAnimalWord` (broken str_replace left dangling `return` statement) | Restored valid `return map[letter.toUpperCase()]` |
+| `X: 'X-ray'` not an animal word | Changed to `X: 'Xerus'` (African ground squirrel) |
+| `WorksheetEngine` not accessible from browser console (`const` doesn't create `window` property) | Changed `const WorksheetEngine` → `window.WorksheetEngine` |
+| FK error code mismatch: `23503` vs `23502` for null `worksheet_id` | Now catches both `23502` (NOT NULL) and `23503` (FK) |
+| Scroll reveal animations never triggered | Added `await` to async renderers + defensive `initScrollReveal()` calls |
+| Quests instantly completed on button click | Replaced instant complete with worksheet+quest flow (banner, Claim Reward on ≥60%) |
+| Navigation race condition causing stale state | navigate() returns early when setting hash; render only via hashchange |
+| Match/sort exercise handler duplication on re-render | Replaced per-element listeners with event delegation |
+| Auth tab switching between Login/Signup broken | Route-aware `dataset.authRoute` key replaces one-time `dataset.rendered` lock |
+| `Quest King` and `Grand Champion` badges never awardable | Added missing `all_quests` and `leaderboard_top` cases to `checkBadges()` |
+| Dragmatch swap silently dropped the old source back to pool without re-render | Removed premature `return` in swap logic, success sound + re-render now runs |
+| Quest progress stuck at Level 0 for high-level users | Auto-sync quest statuses with user profile level in `getQuestStatuses()` |
+| Retroactive XP not awarded when quests auto-complete via level sync | Added retroactive XP award + summary toast for newly synced quests |
+| Quests could be marked complete without XP being awarded (data integrity) | `completeQuest()` now awards XP FIRST, only marks complete on success |
+| `updateStreak()` race condition: addXp() profile update overwritten by streak update | Moved streak update (`last_login`, `streak_days`) BEFORE addXp() call |
+| Redundant `checkBadges()` DB queries (2 queries per XP change) | Added badge cache with 60s TTL + per-user badge cache |
+| Level formula `(N+1)*200` made early levels too slow, later levels impossible | Exponential formula `100 * 1.25^N` + worksheet XP scaled by difficulty (Easy 1x → Legendary 4x) |
+| Play page lacked quest progress visibility | Added quest progress strip (QuestStrip.build) to Play page + Dashboard |
+| `buildQuestStripHTML` bloated app.js | Extracted to `js/quest-strip.js` as standalone `QuestStrip` module |
 
 ---
 
@@ -455,7 +476,7 @@ Then open `http://localhost:3000` in your browser.
 
 ---
 
-*Last updated: June 16, 2026*
+*Last updated: June 17, 2026*
 
 ## 🧠 Worksheet Engine Reference
 
