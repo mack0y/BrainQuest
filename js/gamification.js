@@ -144,20 +144,33 @@ const Gamification = {
       const progressMap = {};
       progress.forEach(p => { progressMap[p.quest_id] = p; });
 
-      // SYNC: Auto-complete quests that match the user's level
-      // If user is Level 3, quests 0-2 should be completed, quest 3 should be available
+      // ── LEVEL SYNC: Auto-complete quests + award retroactive XP ──
+      // If user is Level 3, quests 0-2 should be completed, quest 3 stays available
+      let retroXpTotal = 0;
       for (let i = 0; i < quests.length; i++) {
         const quest = quests[i];
         const prog = progressMap[quest.id];
 
         // Auto-complete quest if user's level exceeds this quest's level
-        // (A user at Level 3 has quests 0-2 auto-completed; quest 3 stays for manual completion)
         if (quest.level < userLevel) {
           if (!prog || prog.status !== 'completed') {
+            // Mark quest completed
             await updateQuestProgress(userId, quest.id, 'completed');
             progressMap[quest.id] = { status: 'completed' };
+            // Award retroactive XP (only once per quest due to the guard above)
+            const retroResult = await this.addXp(userId, quest.xp_reward, 'quest_sync');
+            if (retroResult) {
+              retroXpTotal += retroResult.xpGained;
+            }
           }
         }
+      }
+
+      // Show summary toast for retroactive XP (if any was awarded)
+      if (retroXpTotal > 0) {
+        try {
+          UI.showToast('⚔️ Quests Synced!', `+${retroXpTotal} retroactive XP awarded for past progress!`, '📜');
+        } catch (_) {}
       }
 
       // Unlock the next quest after the last completed one
