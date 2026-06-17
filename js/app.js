@@ -405,7 +405,11 @@ const App = {
   renderQuestPath(container, quests, showFullMap = false) {
     const accentColors = ['green', 'primary', 'secondary', 'amber', 'rose', 'cyan'];
 
+    // Dashboard mode: prepend quest progress strip above the full quest path
+    const stripHTML = showFullMap ? '' : this.buildQuestStripHTML(quests);
+
     container.innerHTML = `
+      ${stripHTML}
       <div class="s-head reveal">
         <div>
           <div class="section__label">⚔️ Quest Path</div>
@@ -566,37 +570,7 @@ const App = {
       : questSubjectIdx;
 
     // Build compact quest progress strip (free-play mode only)
-    let questStripHTML = '';
-    if (!isQuestMode && questStatuses.length > 0) {
-      const questNodes = questStatuses.map(q => {
-        const s = q.progress?.status || 'locked';
-        const isDone = s === 'completed';
-        const isCurrent = s === 'available' || s === 'in_progress';
-        let cls = 'quest-strip__node';
-        if (isDone) cls += ' quest-strip__node--done';
-        else if (isCurrent) cls += ' quest-strip__node--current';
-        else cls += ' quest-strip__node--locked';
-        const href = isCurrent ? '#/worksheet?quest=' + q.id : '';
-        const tag = href ? 'a' : 'span';
-        const attrs = href ? 'href="' + href + '"' : '';
-        const icon = q.icon || '⚔️';
-        const level = q.level;
-        const title = 'Level ' + level + ': ' + q.title + (isDone ? ' ✓' : '');
-        const statusIcon = isDone ? '✓' : isCurrent ? '▶' : '🔒';
-        return '<' + tag + ' ' + attrs + ' class="' + cls + '" title="' + title + '">' +
-          '<span class="quest-strip__icon">' + icon + '</span>' +
-          '<span class="quest-strip__level">Lv.' + level + '</span>' +
-          '<span class="quest-strip__status">' + statusIcon + '</span>' +
-          '</' + tag + '>';
-      }).join('');
-      questStripHTML = '<div class="quest-strip reveal">' +
-        '<div class="quest-strip__header">' +
-        '<span class="quest-strip__label">⚔️ Quest Progress</span>' +
-        '<a href="#/quests" class="quest-strip__more">Full map →</a>' +
-        '</div>' +
-        '<div class="quest-strip__track">' + questNodes + '</div>' +
-        '</div>';
-    }
+    const questStripHTML = this.buildQuestStripHTML(questStatuses, !isQuestMode);
 
     container.innerHTML = `
       ${isQuestMode ? `
@@ -949,6 +923,39 @@ const App = {
     } else {
       UI.showToast('Error', 'Could not complete quest. Try again!', '❌');
     }
+  },
+
+  // ── SHARED QUEST STRIP BUILDER ──
+  buildQuestStripHTML(questStatuses, show = true) {
+    if (!show || !questStatuses || questStatuses.length === 0) return '';
+    const nodes = questStatuses.map(q => {
+      const s = q.progress?.status || 'locked';
+      const isDone = s === 'completed';
+      const isCurrent = s === 'available' || s === 'in_progress';
+      let cls = 'quest-strip__node';
+      if (isDone) cls += ' quest-strip__node--done';
+      else if (isCurrent) cls += ' quest-strip__node--current';
+      else cls += ' quest-strip__node--locked';
+      const href = isCurrent ? '#/worksheet?quest=' + q.id : '';
+      const tag = href ? 'a' : 'span';
+      const attrs = href ? 'href="' + href + '"' : '';
+      const icon = q.icon || '⚔️';
+      const level = q.level;
+      const title = 'Level ' + level + ': ' + q.title + (isDone ? ' ✓' : '');
+      const statusIcon = isDone ? '✓' : isCurrent ? '▶' : '🔒';
+      return '<' + tag + ' ' + attrs + ' class="' + cls + '" title="' + title + '">' +
+        '<span class="quest-strip__icon">' + icon + '</span>' +
+        '<span class="quest-strip__level">Lv.' + level + '</span>' +
+        '<span class="quest-strip__status">' + statusIcon + '</span>' +
+        '</' + tag + '>';
+    }).join('');
+    return '<div class="quest-strip reveal">' +
+      '<div class="quest-strip__header">' +
+      '<span class="quest-strip__label">⚔️ Quest Progress</span>' +
+      '<a href="#/quests" class="quest-strip__more">Full map →</a>' +
+      '</div>' +
+      '<div class="quest-strip__track">' + nodes + '</div>' +
+      '</div>';
   },
 
   // ── HELPERS ──
