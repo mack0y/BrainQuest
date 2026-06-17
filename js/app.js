@@ -568,32 +568,34 @@ const App = {
     // Build compact quest progress strip (free-play mode only)
     let questStripHTML = '';
     if (!isQuestMode && questStatuses.length > 0) {
-      questStripHTML = `
-      <div class="quest-strip reveal">
-        <div class="quest-strip__header">
-          <span class="quest-strip__label">⚔️ Quest Progress</span>
-          <a href="#/quests" class="quest-strip__more">Full map →</a>
-        </div>
-        <div class="quest-strip__track">
-          ${questStatuses.map((q, i) => {
-            const s = q.progress?.status || 'locked';
-            const isDone = s === 'completed';
-            const isCurrent = s === 'available' || s === 'in_progress';
-            let cls = 'quest-strip__node';
-            if (isDone) cls += ' quest-strip__node--done';
-            else if (isCurrent) cls += ' quest-strip__node--current';
-            else cls += ' quest-strip__node--locked';
-            const link = isCurrent ? `href="#/worksheet?quest=${q.id}"` : '';
-            const tag = link ? 'a' : 'span';
-            return `<${tag} ${link} class="${cls}" title="Level ${q.level}: ${q.title}${isDone ? ' ✓' : ''}">
-              <span class="quest-strip__icon">${q.icon || '⚔️'}</span>
-              <span class="quest-strip__level">Lv.${q.level}</span>
-              <span class="quest-strip__status">${isDone ? '✓' : isCurrent ? '▶' : '🔒'}</span>
-            </${tag}>`;
-          }).join('')}
-        </div>
-      </div>
-      `;
+      const questNodes = questStatuses.map(q => {
+        const s = q.progress?.status || 'locked';
+        const isDone = s === 'completed';
+        const isCurrent = s === 'available' || s === 'in_progress';
+        let cls = 'quest-strip__node';
+        if (isDone) cls += ' quest-strip__node--done';
+        else if (isCurrent) cls += ' quest-strip__node--current';
+        else cls += ' quest-strip__node--locked';
+        const href = isCurrent ? '#/worksheet?quest=' + q.id : '';
+        const tag = href ? 'a' : 'span';
+        const attrs = href ? 'href="' + href + '"' : '';
+        const icon = q.icon || '⚔️';
+        const level = q.level;
+        const title = 'Level ' + level + ': ' + q.title + (isDone ? ' ✓' : '');
+        const statusIcon = isDone ? '✓' : isCurrent ? '▶' : '🔒';
+        return '<' + tag + ' ' + attrs + ' class="' + cls + '" title="' + title + '">' +
+          '<span class="quest-strip__icon">' + icon + '</span>' +
+          '<span class="quest-strip__level">Lv.' + level + '</span>' +
+          '<span class="quest-strip__status">' + statusIcon + '</span>' +
+          '</' + tag + '>';
+      }).join('');
+      questStripHTML = '<div class="quest-strip reveal">' +
+        '<div class="quest-strip__header">' +
+        '<span class="quest-strip__label">⚔️ Quest Progress</span>' +
+        '<a href="#/quests" class="quest-strip__more">Full map →</a>' +
+        '</div>' +
+        '<div class="quest-strip__track">' + questNodes + '</div>' +
+        '</div>';
     }
 
     container.innerHTML = `
